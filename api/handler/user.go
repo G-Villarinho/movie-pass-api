@@ -84,7 +84,7 @@ func (u *userHandler) SignIn(ctx echo.Context) error {
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidPassword) {
 			log.Warn("Fail to excute user sign in", slog.String("error", err.Error()))
-			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusUnauthorized, nil, "Unauthorized credentials", "Unauthorized credentials. Review the data sent")
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusUnauthorized, nil, "Unauthorized credentials", "Unauthorized credentials. Review the data sent.")
 		}
 
 		log.Error("Fail to create user", slog.String("error", err.Error()))

@@ -93,7 +93,7 @@ func (u *userService) SignIn(ctx context.Context, payload domain.SignInPayload) 
 		return nil, domain.ErrInvalidPassword
 	}
 
-	token, err := u.sessionService.Create(ctx, user)
+	token, err := u.sessionService.Create(ctx, *user)
 	if err != nil {
 		log.Error("Was not possible create the session for the user", slog.String("error", err.Error()))
 		return nil, domain.ErrCreateSession

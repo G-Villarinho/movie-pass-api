@@ -223,7 +223,7 @@ func TestUserService_SignIn_WhenSuccess_ShouldReturnSignInResponseAndNil(t *test
 	}
 
 	userRepositoryMock.EXPECT().GetByEmail(gomock.Any(), payload.Email).Return(user, nil)
-	sessionServiceMock.EXPECT().Create(gomock.Any(), user).Return("validtoken", nil)
+	sessionServiceMock.EXPECT().Create(gomock.Any(), *user).Return("validtoken", nil)
 
 	response, err := userService.SignIn(context.Background(), *payload)
 
@@ -256,7 +256,7 @@ func TestUserService_SignIn_WhenCreateSessionFails_ShouldReturnErrCreateSession(
 
 	userRepositoryMock.EXPECT().GetByEmail(gomock.Any(), payload.Email).Return(user, nil)
 
-	sessionServiceMock.EXPECT().Create(gomock.Any(), user).Return("", errors.New("session error"))
+	sessionServiceMock.EXPECT().Create(gomock.Any(), *user).Return("", errors.New("session error"))
 
 	response, err := userService.SignIn(context.Background(), *payload)
 

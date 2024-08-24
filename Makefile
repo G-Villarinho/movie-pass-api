@@ -1,5 +1,5 @@
-PRIVATE_KEY_FILE=private_key.pem
-PUBLIC_KEY_FILE=public_key.pem
+PRIVATE_KEY_FILE=ec_private_key.pem
+PUBLIC_KEY_FILE=ec_public_key.pem
 LINT_CONFIG_FILE=golangci.yml
 
 all: generate-keys lint
@@ -22,10 +22,16 @@ generate-keys:
 	fi
 
 lint:
-	@echo "Running linters..."
-	golangci-lint run --config=$(LINT_CONFIG_FILE)
+	@echo "Running linter..."
+	@golangci-lint run ./...
+	@echo "Linter passed successfully"
 
 clean:
 	rm -f $(PRIVATE_KEY_FILE) $(PUBLIC_KEY_FILE)
+
+run:
+	@echo "Runnig application..."
+	go run main.go
+	@echo "Runnnig commpleted succefully"
 
 .PHONY: all generate-keys lint clean

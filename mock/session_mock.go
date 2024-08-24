@@ -37,7 +37,7 @@ func (m *MockSessionService) EXPECT() *MockSessionServiceMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockSessionService) Create(ctx context.Context, user *domain.User) (string, error) {
+func (m *MockSessionService) Create(ctx context.Context, user domain.User) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", ctx, user)
 	ret0, _ := ret[0].(string)
@@ -90,7 +90,7 @@ func (m *MockSessionRepository) EXPECT() *MockSessionRepositoryMockRecorder {
 }
 
 // Create mocks base method.
-func (m *MockSessionRepository) Create(ctx context.Context, session *domain.Session) error {
+func (m *MockSessionRepository) Create(ctx context.Context, session domain.Session) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Create", ctx, session)
 	ret0, _ := ret[0].(error)

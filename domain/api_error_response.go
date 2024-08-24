@@ -65,6 +65,16 @@ func InternalServerAPIErrorResponse(ctx echo.Context) error {
 	return ctx.JSON(http.StatusInternalServerError, errorResponse)
 }
 
+func AccessDeniedAPIErrorResponse(ctx echo.Context) error {
+	errorResponse := ErrorResponse{
+		StatusCode: http.StatusUnauthorized,
+		Title:      "Access Denied",
+		Details:    "You need to be logged in to access this resource.",
+		Errors:     nil,
+	}
+	return ctx.JSON(http.StatusUnauthorized, errorResponse)
+}
+
 func convertToValidationErrorList(validationErrors ValidationErrors) []ValidationError {
 	errorList := make([]ValidationError, 0, len(validationErrors))
 	for field, message := range validationErrors {

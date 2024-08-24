@@ -29,8 +29,8 @@ type User struct {
 	Email        string    `gorm:"column:email;type:varchar(255);uniqueIndex;not null"`
 	BirthDate    time.Time `gorm:"column:birthDate;type:date;not null"`
 	PasswordHash string    `gorm:"column:passwordHash;type:varchar(255);not null"`
-	CreatedAt    time.Time `gorm:"column:createdAt;type:date;not null"`
-	UpdatedAt    time.Time `gorm:"column:updatedAt;type:date;default:NULL"`
+	CreatedAt    time.Time `gorm:"column:createdAt;not null"`
+	UpdatedAt    time.Time `gorm:"column:updatedAt;default:NULL"`
 }
 
 func (User) TableName() string {
@@ -104,8 +104,10 @@ func (u *UserPayload) ToUser(passwordHash string) *User {
 	return &User{
 		ID:           uuid.New(),
 		FirstName:    u.FirstName,
+		LastName:     u.LastName,
 		Email:        u.Email,
 		PasswordHash: passwordHash,
+		BirthDate:    u.BirthDate,
 		CreatedAt:    time.Now().UTC(),
 	}
 }

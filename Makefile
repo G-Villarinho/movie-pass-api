@@ -6,19 +6,19 @@ all: generate-keys lint
 
 generate-keys:
 	@if [ ! -f $(PRIVATE_KEY_FILE) ]; then \
-		echo "Generating ECDSA private key..."; \
+		@echo "Generating ECDSA private key..."; \
 		openssl ecparam -genkey -name prime256v1 -noout -out $(PRIVATE_KEY_FILE); \
-		echo "Private key saved in $(PRIVATE_KEY_FILE)"; \
+		@echo "Private key saved in $(PRIVATE_KEY_FILE)"; \
 	else \
-		echo "Private key already exists: $(PRIVATE_KEY_FILE)"; \
+		@echo "Private key already exists: $(PRIVATE_KEY_FILE)"; \
 	fi
 
 	@if [ ! -f $(PUBLIC_KEY_FILE) ]; then \
-		echo "Extracting public key from the private key..."; \
+		@echo "Extracting public key from the private key..."; \
 		openssl ec -in $(PRIVATE_KEY_FILE) -pubout -out $(PUBLIC_KEY_FILE); \
-		echo "Public key saved in $(PUBLIC_KEY_FILE)"; \
+		@echo "Public key saved in $(PUBLIC_KEY_FILE)"; \
 	else \
-		echo "Public key already exists: $(PUBLIC_KEY_FILE)"; \
+		@echo "Public key already exists: $(PUBLIC_KEY_FILE)"; \
 	fi
 
 lint:
@@ -33,5 +33,10 @@ run:
 	@echo "Runnig application..."
 	go run main.go
 	@echo "Runnnig commpleted succefully"
+
+migrations:
+	@echo "Runnig migrations..."
+	go run config/database/migrations/migrations.go
+	@echo "migrations executed succefully"
 
 .PHONY: all generate-keys lint clean

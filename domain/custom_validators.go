@@ -2,19 +2,20 @@ package domain
 
 import (
 	"github.com/dlclark/regexp2"
-	"github.com/google/uuid"
 
 	"github.com/go-playground/validator/v10"
 )
 
 const (
 	StrongPasswordTag = "strongpassword"
-	UUIDTag           = "uuid"
 )
 
-func SetupCustomValidations(validator *validator.Validate) {
-	validator.RegisterValidation(StrongPasswordTag, strongPasswordValidator)
-	validator.RegisterValidation(UUIDTag, uuidValidator)
+func SetupCustomValidations(validator *validator.Validate) error {
+	if err := validator.RegisterValidation(StrongPasswordTag, strongPasswordValidator); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func strongPasswordValidator(fl validator.FieldLevel) bool {
@@ -24,10 +25,4 @@ func strongPasswordValidator(fl validator.FieldLevel) bool {
 
 	match, _ := re.MatchString(fl.Field().String())
 	return match
-}
-
-func uuidValidator(fl validator.FieldLevel) bool {
-	_, err := uuid.Parse(fl.Field().String())
-
-	return err != nil
 }

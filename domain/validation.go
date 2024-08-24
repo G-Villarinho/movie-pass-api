@@ -6,6 +6,8 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+type ValidationErrors map[string]string
+
 var validationMessages = map[string]string{
 	"required":        "This field is required",
 	"email":           "Invalid email format",
@@ -13,19 +15,19 @@ var validationMessages = map[string]string{
 	"max":             "Value is too long",
 	"eqfield":         "Fields do not match",
 	"gt":              "The value must be greater than zero",
+	"datetime":        "Invalid birth date",
 	StrongPasswordTag: "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character",
-	UUIDTag:           "Invalid uuid format",
 }
 
-func ValidateStruct(s any) map[string]string {
+func ValidateStruct(s any) ValidationErrors {
 	validate := validator.New()
 
-	SetupCustomValidations(validate)
+	if err := SetupCustomValidations(validate); err != nil {
+		return ValidationErrors{"validation_setup": "Failed to set up custom validations"}
+	}
 
-	err := validate.Struct(s)
-	validationErrors := make(map[string]string)
-
-	if err != nil {
+	validationErrors := make(ValidationErrors)
+	if err := validate.Struct(s); err != nil {
 		for _, err := range err.(validator.ValidationErrors) {
 			fieldName := strings.ToLower(err.Field())
 			validationErrors[fieldName] = getErrorMessage(err)

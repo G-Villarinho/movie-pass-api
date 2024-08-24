@@ -22,20 +22,21 @@ func (User) TableName() string {
 }
 
 type UserPayload struct {
-	FirstName       string    `json:"firstName" validate:"required,min=1,max=75"`
-	LastName        string    `json:"lastName" validate:"required,min=1,max=75"`
-	Email           string    `json:"email" validate:"required,email"`
+	FirstName       string    `json:"firstName" validate:"required,min=1,max=255"`
+	LastName        string    `json:"lastName" validate:"required,min=1,max=255"`
+	Email           string    `json:"email" validate:"required,email,max=255"`
 	ConfirmEmail    string    `json:"confirmEmail" validate:"required,eqfield=Email"`
 	Password        string    `json:"password,omitempty" validate:"required,max=255,strongpassword"`
 	ConfirmPassword string    `json:"confirmPassword" validate:"required,eqfield=Password"`
-	BirthDate       time.Time `json:"birthDate" validate:"required"`
+	BirthDate       time.Time `json:"birthDate" validate:"required,datetime"`
 }
 
 type UserResponse struct {
-	ID        string `json:"id"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName" validate:"required,min=1,max=75"`
-	Email     string `json:"email" validate:"required,email"`
+	ID        string    `json:"id"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
+	Email     string    `json:"email"`
+	BirthDate time.Time `json:"birthDate"`
 }
 
 type SignInPayload struct {

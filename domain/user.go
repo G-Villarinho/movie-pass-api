@@ -1,6 +1,6 @@
 package domain
 
-//go:generate mockgen -source=user.go -destination=../mock/user_mock.go -package=mocks
+//go:generate mockgen -source=user.go -destination=../mock/user_mock.go -package=mock
 
 import (
 	"context"
@@ -44,7 +44,7 @@ type UserPayload struct {
 	ConfirmEmail    string    `json:"confirmEmail" validate:"required,eqfield=Email"`
 	Password        string    `json:"password,omitempty" validate:"required,max=255,strongpassword"`
 	ConfirmPassword string    `json:"confirmPassword" validate:"required,eqfield=Password"`
-	BirthDate       time.Time `json:"birthDate" validate:"required,datetime"`
+	BirthDate       time.Time `json:"birthDate" validate:"required,nottooold,notfuturedate"`
 }
 
 type UserResponse struct {
@@ -66,10 +66,12 @@ type SignInResponse struct {
 
 type UserHandler interface {
 	Create(ctx echo.Context) error
+	SignIn(ctx echo.Context) error
 }
 
 type UserService interface {
 	Create(ctx context.Context, payload UserPayload) error
+	SignIn(ctx context.Context, payload SignInPayload) (*SignInResponse, error)
 }
 
 type UserRepository interface {
@@ -79,9 +81,18 @@ type UserRepository interface {
 
 func (u *UserPayload) trim() {
 	u.FirstName = strings.TrimSpace(u.FirstName)
-	u.LastName = strings.TrimSpace(u.FirstName)
+	u.LastName = strings.TrimSpace(u.LastName)
 	u.Email = strings.TrimSpace(strings.ToLower(u.Email))
 	u.ConfirmEmail = strings.TrimSpace(strings.ToLower(u.ConfirmEmail))
+}
+
+func (s *SignInPayload) trim() {
+	s.Email = strings.TrimSpace(strings.ToLower(s.Email))
+}
+
+func (s *SignInPayload) Validate() ValidationErrors {
+	s.trim()
+	return ValidateStruct(s)
 }
 
 func (u *UserPayload) Validate() ValidationErrors {

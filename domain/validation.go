@@ -17,6 +17,8 @@ var validationMessages = map[string]string{
 	"gt":              "The value must be greater than zero",
 	"datetime":        "Invalid birth date",
 	StrongPasswordTag: "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character",
+	NotTooOldTag:      "The date of birth indicates an age greater than the allowed maximum of 200 years",
+	NotFutureDateTag:  "The date of birth cannot be in the future",
 }
 
 func ValidateStruct(s any) ValidationErrors {

@@ -18,4 +18,5 @@ func setupUserRoutes(e *echo.Echo, i *do.Injector) {
 
 	group := e.Group("/v1/users")
 	group.POST("", userHandler.Create)
+	group.POST("sign-in", userHandler.SignIn)
 }

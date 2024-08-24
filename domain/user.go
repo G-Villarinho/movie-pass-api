@@ -1,9 +1,25 @@
 package domain
 
+//go:generate mockgen -source=user.go -destination=../mock/user_mock.go -package=mocks
+
 import (
+	"context"
+	"errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+)
+
+var (
+	ErrUserNotFound          = errors.New("user not found")
+	ErrEmailAlreadyRegister  = errors.New("email already exists")
+	ErrHashingPassword       = errors.New("failed to hash password")
+	ErrInvalidPassword       = errors.New("invalid password")
+	ErrUserNotFoundInContext = errors.New("user not found in context")
+	ErrCreateUser            = errors.New("create user fail")
+	ErrGetUserByEmail        = errors.New("get user by email fail")
 )
 
 type User struct {
@@ -46,4 +62,39 @@ type SignInPayload struct {
 
 type SignInResponse struct {
 	Token string `json:"token"`
+}
+
+type UserHandler interface {
+	Create(ctx echo.Context) error
+}
+
+type UserService interface {
+	Create(ctx context.Context, payload UserPayload) error
+}
+
+type UserRepository interface {
+	Create(ctx context.Context, user User) error
+	GetByEmail(ctx context.Context, email string) (*User, error)
+}
+
+func (u *UserPayload) trim() {
+	u.FirstName = strings.TrimSpace(u.FirstName)
+	u.LastName = strings.TrimSpace(u.FirstName)
+	u.Email = strings.TrimSpace(strings.ToLower(u.Email))
+	u.ConfirmEmail = strings.TrimSpace(strings.ToLower(u.ConfirmEmail))
+}
+
+func (u *UserPayload) Validate() ValidationErrors {
+	u.trim()
+	return ValidateStruct(u)
+}
+
+func (u *UserPayload) ToUser(passwordHash string) *User {
+	return &User{
+		ID:           uuid.New(),
+		FirstName:    u.FirstName,
+		Email:        u.Email,
+		PasswordHash: passwordHash,
+		CreatedAt:    time.Now().UTC(),
+	}
 }

@@ -46,10 +46,13 @@ func main() {
 	})
 
 	do.Provide(i, handler.NewUserHandler)
+	do.Provide(i, handler.NewCinemaHandler)
 
+	do.Provide(i, service.NewCinemaSevice)
 	do.Provide(i, service.NewUserService)
 	do.Provide(i, service.NewSessionService)
 
+	do.Provide(i, repository.NewCinemaRepository)
 	do.Provide(i, repository.NewUserRepository)
 	do.Provide(i, repository.NewSessionRepository)
 

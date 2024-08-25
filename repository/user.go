@@ -42,6 +42,7 @@ func (u *userRepository) Create(ctx context.Context, user domain.User) error {
 	)
 
 	log.Info("Initializing user creation process")
+
 	if err := u.db.WithContext(ctx).Create(&user).Error; err != nil {
 		log.Error("Failed to create user", slog.String("error", err.Error()))
 		return err

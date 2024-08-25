@@ -20,7 +20,16 @@ func main() {
 		log.Fatal("Fail to connect to mysql: ", err)
 	}
 
-	if err := db.AutoMigrate(&domain.User{}); err != nil {
+	if err := db.AutoMigrate(
+		&domain.User{},
+		&domain.Cinema{},
+		&domain.CinemaSession{},
+		&domain.CinemaRoom{},
+		&domain.IndicativeRating{},
+		&domain.Movie{},
+		&domain.SeatReservation{},
+		&domain.Seat{},
+	); err != nil {
 		log.Fatal("Fail to migrate: ", err)
 	}
 

@@ -103,7 +103,7 @@ func (s *sessionService) createToken(user domain.User) (string, error) {
 	log.Info("Initializing create token process")
 
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, jwt.MapClaims{
-		"MoviePassId": user.ID,
+		"moviePassId": user.ID,
 		"firstName":   user.FirstName,
 		"lastName":    user.LastName,
 		"email":       user.Email,

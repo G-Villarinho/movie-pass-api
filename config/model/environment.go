@@ -9,6 +9,7 @@ type Environment struct {
 	RedisDB          int    `env:"REDIS_DB"`
 	APIPort          string `env:"API_PORT"`
 	SessionExp       int    `env:"SESSION_EXP"`
+	FrontURL         string `env:"FRONT_URL"`
 	PrivateKey       *ecdsa.PrivateKey
 	PublicKey        *ecdsa.PublicKey
 }

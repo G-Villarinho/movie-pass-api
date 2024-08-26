@@ -13,6 +13,7 @@ import (
 	"github.com/GSVillas/movie-pass-api/service"
 	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/samber/do"
 	"gorm.io/gorm"
 )
@@ -23,6 +24,11 @@ func main() {
 
 	e := echo.New()
 	i := do.New()
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{config.Env.FrontURL},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
+	}))
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

@@ -12,6 +12,8 @@ type Movie struct {
 	Duration           int              `gorm:"column:duration;type:int;not null"`
 	IndicativeRatingID uuid.UUID        `gorm:"column:id;type:char(36)"`
 	IndicativeRating   IndicativeRating `gorm:"foreignKey:IndicativeRatingID"`
+	UserID             uuid.UUID        `gorm:"column:userId;type:char(36);not null"`
+	User               User             `gorm:"foreignKey:UserID"`
 	CreatedAt          time.Time        `gorm:"column:createdAt;not null"`
 	UpdatedAt          time.Time        `gorm:"column:updatedAt;default:NULL"`
 }

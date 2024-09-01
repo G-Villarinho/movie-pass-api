@@ -76,7 +76,7 @@ func (c *cinemaRepository) GetByID(ctx context.Context, cinemaID uuid.UUID) (*do
 	return &cinema, nil
 }
 
-func (c *cinemaRepository) GetAll(ctx context.Context) ([]domain.Cinema, error) {
+func (c *cinemaRepository) GetAll(ctx context.Context, userID uuid.UUID) ([]domain.Cinema, error) {
 	log := slog.With(
 		slog.String("repository", "cinema"),
 		slog.String("func", "GetAll"),
@@ -85,7 +85,7 @@ func (c *cinemaRepository) GetAll(ctx context.Context) ([]domain.Cinema, error) 
 	log.Info("Initializing get all cinemas process")
 
 	var cinemas []domain.Cinema
-	if err := c.db.WithContext(ctx).Find(&cinemas).Error; err != nil {
+	if err := c.db.Where("userId = ?", userID.String()).WithContext(ctx).Find(&cinemas).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				log.Warn("No cinema records found")

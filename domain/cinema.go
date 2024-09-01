@@ -20,7 +20,9 @@ var (
 type Cinema struct {
 	ID        uuid.UUID `gorm:"column:id;type:char(36);primaryKey"`
 	Name      string    `gorm:"column:name;type:varchar(255);not null"`
-	Location  string    `gorm:"column:name;type:varchar(255);not null"`
+	Location  string    `gorm:"column:location;type:varchar(255);not null"`
+	UserID    uuid.UUID `gorm:"column:userId;type:char(36);not null"`
+	User      User      `gorm:"foreignKey:UserID"`
 	CreatedAt time.Time `gorm:"column:createdAt;not null"`
 	UpdatedAt time.Time `gorm:"column:updatedAt;default:NULL"`
 }
@@ -49,7 +51,7 @@ type CinemaHandler interface {
 }
 
 type CinemaService interface {
-	Create(ctx context.Context, payload CinemaPayload) error
+	Create(ctx context.Context, payload CinemaPayload) (*CinemaResponse, error)
 	GetByID(ctx context.Context, cinemaID uuid.UUID) (*CinemaResponse, error)
 	GetAll(ctx context.Context) ([]CinemaResponse, error)
 	Delete(ctx context.Context, cinemaID uuid.UUID) error
@@ -58,7 +60,7 @@ type CinemaService interface {
 type CinemaRepository interface {
 	Create(ctx context.Context, cinema Cinema) error
 	GetByID(ctx context.Context, cinemaID uuid.UUID) (*Cinema, error)
-	GetAll(ctx context.Context) ([]Cinema, error)
+	GetAll(ctx context.Context, userID uuid.UUID) ([]Cinema, error)
 	Delete(ctx context.Context, cinemaID uuid.UUID) error
 }
 
@@ -72,11 +74,12 @@ func (c *CinemaPayload) Validate() ValidationErrors {
 	return ValidateStruct(c)
 }
 
-func (c *CinemaPayload) ToCinema() *Cinema {
+func (c *CinemaPayload) ToCinema(userID uuid.UUID) *Cinema {
 	return &Cinema{
 		ID:        uuid.New(),
 		Name:      c.Name,
 		Location:  c.Location,
+		UserID:    userID,
 		CreatedAt: time.Now().UTC(),
 	}
 }

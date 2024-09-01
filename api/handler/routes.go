@@ -32,6 +32,6 @@ func setupCinemaRoutes(e *echo.Echo, i *do.Injector) {
 	group := e.Group("/v1/cinemas", middleware.EnsureAuthenticated(i))
 	group.POST("", cinemaHandler.Create)
 	group.GET("", cinemaHandler.GetAll)
-	group.GET("/:id", cinemaHandler.GetByID)
-	group.DELETE("/:id", cinemaHandler.Delete)
+	group.GET("/:cinemaId", cinemaHandler.GetByID)
+	group.DELETE("/:cinemaId", cinemaHandler.Delete)
 }

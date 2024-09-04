@@ -1,9 +1,17 @@
 package domain
 
 import (
+	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+)
+
+var (
+	ErrGetAllIndicativeRating    = errors.New("failed to obtain all indicative ratings")
+	ErrIndicativeRatingsNotFound = errors.New("indicative ratings not found")
 )
 
 type Movie struct {
@@ -20,4 +28,41 @@ type Movie struct {
 
 func (Movie) TableName() string {
 	return "Movie"
+}
+
+type IndicativeRating struct {
+	ID          uuid.UUID `gorm:"column:id;type:char(36);primaryKey"`
+	Description string    `gorm:"column:description;type:char(4);not null;uniqueIndex"`
+	ImageURL    string    `gorm:"column:imageUrl;type:varchar(255);not null"`
+	CreatedAt   time.Time `gorm:"column:createdAt;not null"`
+	UpdatedAt   time.Time `gorm:"column:updatedAt;default:NULL"`
+}
+
+func (IndicativeRating) TableName() string {
+	return "IndicativeRating"
+}
+
+type IndicativeRatingResponse struct {
+	ID          uuid.UUID `json:"id"`
+	Description string    `json:"description"`
+	ImageURL    string    `json:"imageUrl"`
+}
+
+type MovieHandler interface {
+	GetAllIndicativeRating(ctx echo.Context) error
+}
+
+type MovieService interface {
+	GetAllIndicativeRating(ctx context.Context) ([]IndicativeRatingResponse, error)
+}
+type MovieRepository interface {
+	GetAllIndicativeRating(ctx context.Context, userID uuid.UUID) ([]IndicativeRating, error)
+}
+
+func (i *IndicativeRating) IndicativeRatingResponse() *IndicativeRatingResponse {
+	return &IndicativeRatingResponse{
+		ID:          i.ID,
+		Description: i.Description,
+		ImageURL:    i.ImageURL,
+	}
 }

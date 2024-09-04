@@ -10,6 +10,7 @@ import (
 func SetupRoutes(e *echo.Echo, i *do.Injector) {
 	setupUserRoutes(e, i)
 	setupCinemaRoutes(e, i)
+	setupMovieRoutes(e, i)
 }
 
 func setupUserRoutes(e *echo.Echo, i *do.Injector) {
@@ -34,4 +35,14 @@ func setupCinemaRoutes(e *echo.Echo, i *do.Injector) {
 	group.GET("", cinemaHandler.GetAll)
 	group.GET("/:cinemaId", cinemaHandler.GetByID)
 	group.DELETE("/:cinemaId", cinemaHandler.Delete)
+}
+
+func setupMovieRoutes(e *echo.Echo, i *do.Injector) {
+	movieHandler, err := do.Invoke[domain.MovieHandler](i)
+	if err != nil {
+		panic(err)
+	}
+
+	group := e.Group("/v1/movies")
+	group.GET("/indicativeRating", movieHandler.GetAllIndicativeRating)
 }

@@ -131,8 +131,8 @@ func (c *cinemaHandler) GetAll(ctx echo.Context) error {
 	response, err := c.cinemaService.GetAll(ctx.Request().Context())
 	if err != nil {
 		if errors.Is(err, domain.ErrCinemaNotFound) {
-			log.Warn("No cinema found", slog.String("error", err.Error()))
-			return ctx.NoContent(http.StatusNoContent)
+			log.Warn("No cinemas available", slog.String("error", err.Error()))
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusNotFound, nil, "No Cinemas Found", "There are currently no cinemas available in the system. Please try again later or contact support if you believe this is a mistake.")
 		}
 
 		log.Error("Failed to get all cinemas", slog.String("error", err.Error()))

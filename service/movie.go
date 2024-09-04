@@ -25,7 +25,7 @@ func NewMovieService(i *do.Injector) (domain.MovieService, error) {
 	}, nil
 }
 
-func (m *movieService) GetAllIndicativeRating(ctx context.Context) ([]domain.IndicativeRatingResponse, error) {
+func (m *movieService) GetAllIndicativeRating(ctx context.Context) ([]*domain.IndicativeRatingResponse, error) {
 	log := slog.With(
 		slog.String("service", "movie"),
 		slog.String("func", "GetAllIndicativeRating"),
@@ -33,21 +33,22 @@ func (m *movieService) GetAllIndicativeRating(ctx context.Context) ([]domain.Ind
 
 	log.Info("Initializing get all indicative rating process")
 
-	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
-	if !ok || session == nil {
-		return nil, domain.ErrUserNotFoundInContext
-	}
-
-	indicativeRating, err := m.movieRepository.GetAllIndicativeRating(ctx, session.UserID)
+	indicativeRatings, err := m.movieRepository.GetAllIndicativeRating(ctx)
 	if err != nil {
 		log.Error("Failed to get all indicative rating", slog.String("error", err.Error()))
 		return nil, domain.ErrGetAllIndicativeRating
 	}
 
-	if indicativeRating == nil {
+	if indicativeRatings == nil {
 		log.Warn("indicative ratings not found")
 		return nil, domain.ErrIndicativeRatingsNotFound
 	}
 
-	return nil, nil
+	var indicativeRatingsResponse []*domain.IndicativeRatingResponse
+	for _, indicativeRattings := range indicativeRatings {
+		indicativeRatingsResponse = append(indicativeRatingsResponse, indicativeRattings.ToIndicativeRatingResponse())
+	}
+
+	log.Info("Get all indicative rating process executed succefully")
+	return indicativeRatingsResponse, nil
 }

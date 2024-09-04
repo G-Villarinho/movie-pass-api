@@ -53,13 +53,13 @@ type MovieHandler interface {
 }
 
 type MovieService interface {
-	GetAllIndicativeRating(ctx context.Context) ([]IndicativeRatingResponse, error)
+	GetAllIndicativeRating(ctx context.Context) ([]*IndicativeRatingResponse, error)
 }
 type MovieRepository interface {
-	GetAllIndicativeRating(ctx context.Context, userID uuid.UUID) ([]IndicativeRating, error)
+	GetAllIndicativeRating(ctx context.Context) ([]*IndicativeRating, error)
 }
 
-func (i *IndicativeRating) IndicativeRatingResponse() *IndicativeRatingResponse {
+func (i *IndicativeRating) ToIndicativeRatingResponse() *IndicativeRatingResponse {
 	return &IndicativeRatingResponse{
 		ID:          i.ID,
 		Description: i.Description,

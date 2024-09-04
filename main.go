@@ -51,14 +51,17 @@ func main() {
 		return redisClient, nil
 	})
 
-	do.Provide(i, handler.NewUserHandler)
 	do.Provide(i, handler.NewCinemaHandler)
+	do.Provide(i, handler.NewMovieHandler)
+	do.Provide(i, handler.NewUserHandler)
 
 	do.Provide(i, service.NewCinemaSevice)
+	do.Provide(i, service.NewMovieService)
 	do.Provide(i, service.NewUserService)
 	do.Provide(i, service.NewSessionService)
 
 	do.Provide(i, repository.NewCinemaRepository)
+	do.Provide(i, repository.NewMovieRepository)
 	do.Provide(i, repository.NewUserRepository)
 	do.Provide(i, repository.NewSessionRepository)
 

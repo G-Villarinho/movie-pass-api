@@ -7,7 +7,6 @@ import (
 
 	"github.com/GSVillas/movie-pass-api/domain"
 	"github.com/go-redis/redis/v8"
-	"github.com/google/uuid"
 	"github.com/samber/do"
 	"gorm.io/gorm"
 )
@@ -36,7 +35,7 @@ func NewMovieRepository(i *do.Injector) (domain.MovieRepository, error) {
 	}, nil
 }
 
-func (m *MovieRepository) GetAllIndicativeRating(ctx context.Context, userID uuid.UUID) ([]domain.IndicativeRating, error) {
+func (m *MovieRepository) GetAllIndicativeRating(ctx context.Context) ([]*domain.IndicativeRating, error) {
 	log := slog.With(
 		slog.String("repository", "movie"),
 		slog.String("func", "GetAllIndicativeRating"),
@@ -44,8 +43,8 @@ func (m *MovieRepository) GetAllIndicativeRating(ctx context.Context, userID uui
 
 	log.Info("Initializing get all indicative rating process")
 
-	var indicativeRating []domain.IndicativeRating
-	if err := m.db.Where("userId = ?", userID.String()).WithContext(ctx).Find(&indicativeRating).Error; err != nil {
+	var indicativeRating []*domain.IndicativeRating
+	if err := m.db.WithContext(ctx).Find(&indicativeRating).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				log.Warn("No indicative rating records found")

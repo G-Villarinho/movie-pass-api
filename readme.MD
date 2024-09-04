@@ -12,12 +12,14 @@
 
 ## 🚀 Main Features
 
-- 🎟️ **Ticket Purchase**: Simplify the online ticket buying process.
-- 🏙️ **Cinema Management**: Add and update cinemas and their respective theaters with custom seat arrangements.
-- 📽️ **Movie Catalog**: Manage the catalog of available movies.
-- 📅 **Real-Time Seat Reservation**: View and reserve available seats in real time.
+- 🎟️ **Ticket Purchase**: Simplify the online ticket buying process, powered by WebSockets and Server-Sent Events (SSE) for real-time updates.
+- 🏙️ **Cinema Management**: Add and update multiple cinemas and their respective theaters with custom seat arrangements, offering full flexibility in theater layout design.
+- 📽️ **Movie Catalog**: Manage the catalog of available movies with ease.
+- 📅 **Real-Time Seat Reservation**: View and reserve available seats in real time using WebSockets and Server-Sent Events (SSE) to ensure a seamless booking experience.
 - 👤 **User Authentication**: Complete system for registration, sign-in, and authentication, including session management with Redis.
 - 🛡️ **JWT Authentication**: All routes are secured with JWT-based authentication for enhanced security.
+- 🏗️ **Admin Control**: Admins can create cinemas, theaters, and custom seat arrangements. The system also supports session management, enabling administrators to control access and availability.
+- 🔑 **Role-Based Permissions**: The system comes with a robust role-based permission model, allowing different levels of access for users, such as admin, cashier, and customer, ensuring secure and organized management of resources.
 
 ## 📋 Installation
 

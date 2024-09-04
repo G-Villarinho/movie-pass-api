@@ -29,6 +29,7 @@ func main() {
 		&domain.CinemaRoom{},
 		&domain.IndicativeRating{},
 		&domain.Movie{},
+		&domain.MovieImage{},
 		&domain.SeatReservation{},
 		&domain.Seat{},
 	); err != nil {

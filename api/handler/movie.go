@@ -49,3 +49,8 @@ func (m *movieHandler) GetAllIndicativeRating(ctx echo.Context) error {
 	log.Info("Get all indicative ratings executed successfully")
 	return ctx.JSON(http.StatusOK, response)
 }
+
+// Create implements domain.MovieHandler.
+func (m *movieHandler) Create(ctx echo.Context) error {
+	panic("unimplemented")
+}

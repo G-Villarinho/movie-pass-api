@@ -49,13 +49,14 @@ func (c *cinemaHandler) Create(ctx echo.Context) error {
 		return domain.NewValidationAPIErrorResponse(ctx, http.StatusUnprocessableEntity, validationErrors)
 	}
 
-	if err := c.cinemaService.Create(ctx.Request().Context(), payload); err != nil {
+	response, err := c.cinemaService.Create(ctx.Request().Context(), payload)
+	if err != nil {
 		log.Error("Fail to create user", slog.String("error", err.Error()))
 		return domain.InternalServerAPIErrorResponse(ctx)
 	}
 
 	log.Info("Cinema created successfully")
-	return ctx.NoContent(http.StatusCreated)
+	return ctx.JSON(http.StatusCreated, response)
 }
 
 func (c *cinemaHandler) GetByID(ctx echo.Context) error {
@@ -127,7 +128,7 @@ func (c *cinemaHandler) GetAll(ctx echo.Context) error {
 
 	log.Info("Initializing get all cinemas process")
 
-	cinemas, err := c.cinemaService.GetAll(ctx.Request().Context())
+	response, err := c.cinemaService.GetAll(ctx.Request().Context())
 	if err != nil {
 		if errors.Is(err, domain.ErrCinemaNotFound) {
 			log.Warn("No cinema found", slog.String("error", err.Error()))
@@ -139,5 +140,5 @@ func (c *cinemaHandler) GetAll(ctx echo.Context) error {
 	}
 
 	log.Info("Get all cinemas executed successfully")
-	return ctx.JSON(http.StatusOK, cinemas)
+	return ctx.JSON(http.StatusOK, response)
 }

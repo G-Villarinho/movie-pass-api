@@ -26,7 +26,7 @@ func NewCinemaSevice(i *do.Injector) (domain.CinemaService, error) {
 	}, nil
 }
 
-func (c *cinemaService) Create(ctx context.Context, payload domain.CinemaPayload) error {
+func (c *cinemaService) Create(ctx context.Context, payload domain.CinemaPayload) (*domain.CinemaResponse, error) {
 	log := slog.With(
 		slog.String("service", "cinema"),
 		slog.String("func", "Create"),
@@ -34,14 +34,19 @@ func (c *cinemaService) Create(ctx context.Context, payload domain.CinemaPayload
 
 	log.Info("Initializing cinema creation process")
 
-	cinema := payload.ToCinema()
+	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
+	if !ok || session == nil {
+		return nil, domain.ErrUserNotFoundInContext
+	}
+
+	cinema := payload.ToCinema(session.UserID)
 	if err := c.cinemaRepository.Create(ctx, *cinema); err != nil {
 		log.Error("Failed to create cinema", slog.String("error", err.Error()))
-		return domain.ErrCreateCinema
+		return nil, domain.ErrCreateCinema
 	}
 
 	log.Info("Cinema creation process executed succefully")
-	return nil
+	return cinema.ToCinemaResponse(), nil
 }
 
 func (c *cinemaService) GetByID(ctx context.Context, cinemaID uuid.UUID) (*domain.CinemaResponse, error) {
@@ -75,7 +80,12 @@ func (c *cinemaService) GetAll(ctx context.Context) ([]domain.CinemaResponse, er
 
 	log.Info("Initializing get all cinemas process")
 
-	cinemas, err := c.cinemaRepository.GetAll(ctx)
+	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
+	if !ok || session == nil {
+		return nil, domain.ErrUserNotFoundInContext
+	}
+
+	cinemas, err := c.cinemaRepository.GetAll(ctx, session.UserID)
 	if err != nil {
 		log.Error("Failed to get all cinemas", slog.String("error", err.Error()))
 		return nil, domain.ErrGetCinema

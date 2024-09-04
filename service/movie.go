@@ -48,4 +48,6 @@ func (m *movieService) GetAllIndicativeRating(ctx context.Context) ([]domain.Ind
 		log.Warn("indicative ratings not found")
 		return nil, domain.ErrIndicativeRatingsNotFound
 	}
+
+	return nil, nil
 }

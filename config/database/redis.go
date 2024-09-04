@@ -9,7 +9,7 @@ import (
 
 func NewRedisConnection(ctx context.Context) (*redis.Client, error) {
 	client := redis.NewClient(&redis.Options{
-		Addr:     config.Env.RedisAdress,
+		Addr:     config.Env.RedisAddress,
 		Password: config.Env.RedisPassword,
 		DB:       config.Env.RedisDB,
 	})

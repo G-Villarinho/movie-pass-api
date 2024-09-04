@@ -4,7 +4,7 @@ import "crypto/ecdsa"
 
 type Environment struct {
 	ConnectionString     string `env:"CONNECTION_STRING"`
-	RedisAdress          string `env:"REDIS_ADRESS"`
+	RedisAddress         string `env:"REDIS_ADDRESS"`
 	RedisPassword        string `env:"REDIS_PASSWORD"`
 	APIPort              string `env:"API_PORT"`
 	FrontURL             string `env:"FRONT_URL"`

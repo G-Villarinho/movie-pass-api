@@ -39,4 +39,12 @@ migrations:
 	go run config/database/migrations/migrations.go
 	@echo "migrations executed succefully"
 
+test:
+	@echo "Running tests..."
+	go test ./... -v
+	@echo "Tests completed successfully"
+
+e2e:
+	@echo "Runnig e2e tests"
+
 .PHONY: all generate-keys lint clean

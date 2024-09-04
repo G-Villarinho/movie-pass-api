@@ -87,19 +87,12 @@ func (c *cinemaRepository) GetAll(ctx context.Context, userID uuid.UUID) ([]doma
 	var cinemas []domain.Cinema
 	if err := c.db.Where("userId = ?", userID.String()).WithContext(ctx).Find(&cinemas).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				log.Warn("No cinema records found")
-				return nil, nil
-			}
+			log.Warn("No cinema records found")
+			return nil, nil
 		}
 
 		log.Error("Failed to get all cinemas", slog.String("error", err.Error()))
 		return nil, err
-	}
-
-	if len(cinemas) == 0 {
-		log.Warn("No cinema records found")
-		return nil, nil
 	}
 
 	log.Info("Get all cinemas process executed successfully")

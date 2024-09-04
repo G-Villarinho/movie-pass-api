@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GSVillas/movie-pass-api/api/handler"
+	"github.com/GSVillas/movie-pass-api/client"
 	"github.com/GSVillas/movie-pass-api/config"
 	"github.com/GSVillas/movie-pass-api/config/database"
 	"github.com/GSVillas/movie-pass-api/repository"
@@ -64,6 +65,8 @@ func main() {
 	do.Provide(i, repository.NewMovieRepository)
 	do.Provide(i, repository.NewUserRepository)
 	do.Provide(i, repository.NewSessionRepository)
+
+	do.Provide(i, client.NewCloudFlareService)
 
 	handler.SetupRoutes(e, i)
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", config.Env.APIPort)))

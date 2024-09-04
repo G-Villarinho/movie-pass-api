@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"context"
 	"time"
 
 	"github.com/google/uuid"
@@ -15,6 +16,17 @@ type Seat struct {
 	UpdatedAt      time.Time  `gorm:"column:updatedAt;default:NULL"`
 }
 
+type SeatPayload struct {
+	SeatIdentifier string
+}
+
 func (Seat) TableName() string {
 	return "Seat"
+}
+
+type SeatRepository interface {
+	Create(ctx context.Context, seat Seat) error
+	GetByID(ctx context.Context, seatID uuid.UUID) (*Seat, error)
+	GetAll(ctx context.Context) ([]Seat, error)
+	Delete(ctx context.Context, seatID uuid.UUID) error
 }

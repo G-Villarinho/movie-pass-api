@@ -3,6 +3,7 @@ package client
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"log/slog"
 	"mime/multipart"
@@ -14,7 +15,6 @@ import (
 )
 
 var (
-	ErrOpenFile         = errors.New("failed to open file")
 	ErrCreateFormFile   = errors.New("failed to create form file")
 	ErrCopyFile         = errors.New("failed to copy file to buffer")
 	ErrCloseWriter      = errors.New("failed to close writer")
@@ -27,7 +27,7 @@ var (
 )
 
 type CloudFlareService interface {
-	UploadImage(image *multipart.FileHeader) (string, error)
+	UploadImage(imageBytes []byte, filename string) (string, error)
 }
 
 type cloudFlareService struct {
@@ -59,7 +59,7 @@ func NewCloudFlareService(i *do.Injector) (CloudFlareService, error) {
 	}, nil
 }
 
-func (c *cloudFlareService) UploadImage(image *multipart.FileHeader) (string, error) {
+func (c *cloudFlareService) UploadImage(imageBytes []byte, filename string) (string, error) {
 	log := slog.With(
 		slog.String("client", "cloudFlare"),
 		slog.String("func", "UploadImage"),
@@ -67,27 +67,23 @@ func (c *cloudFlareService) UploadImage(image *multipart.FileHeader) (string, er
 
 	log.Info("Initializing image upload process")
 
-	file, err := image.Open()
-	if err != nil {
-		log.Error("Failed to open file", slog.String("error", err.Error()))
-		return "", ErrOpenFile
-	}
-	defer file.Close()
-
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	part, err := writer.CreateFormFile("file", image.Filename)
+	// Cria o arquivo de formulário
+	part, err := writer.CreateFormFile("file", filename)
 	if err != nil {
 		log.Error("Failed to create form file", slog.String("error", err.Error()))
 		return "", ErrCreateFormFile
 	}
 
-	if _, err := io.Copy(part, file); err != nil {
+	// Copia o array de bytes para o buffer
+	if _, err := io.Copy(part, bytes.NewReader(imageBytes)); err != nil {
 		log.Error("Failed to copy file to buffer", slog.String("error", err.Error()))
 		return "", ErrCopyFile
 	}
 
+	// Fecha o writer
 	if err := writer.Close(); err != nil {
 		log.Error("Failed to close writer", slog.String("error", err.Error()))
 		return "", ErrCloseWriter
@@ -98,6 +94,9 @@ func (c *cloudFlareService) UploadImage(image *multipart.FileHeader) (string, er
 		log.Error("Failed to create request", slog.String("error", err.Error()))
 		return "", ErrCreateRequest
 	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Env.CloudFlareApiKey))
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	client := &http.Client{}
 	resp, err := client.Do(req)

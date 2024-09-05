@@ -9,6 +9,7 @@ type Environment struct {
 	APIPort              string `env:"API_PORT"`
 	FrontURL             string `env:"FRONT_URL"`
 	CloudFlareAccountAPI string `env:"CLOUD_FLARE_ACCOUNT_API"`
+	CloudFlareApiKey     string `env:"CLOUD_FLARE_API_KEY"`
 	RedisDB              int    `env:"REDIS_DB"`
 	SessionExp           int    `env:"SESSION_EXP"`
 	PrivateKey           *ecdsa.PrivateKey

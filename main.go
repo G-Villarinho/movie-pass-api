@@ -10,6 +10,7 @@ import (
 	"github.com/GSVillas/movie-pass-api/client"
 	"github.com/GSVillas/movie-pass-api/config"
 	"github.com/GSVillas/movie-pass-api/config/database"
+	"github.com/GSVillas/movie-pass-api/domain"
 	"github.com/GSVillas/movie-pass-api/repository"
 	"github.com/GSVillas/movie-pass-api/service"
 	"github.com/go-redis/redis/v8"
@@ -31,7 +32,7 @@ func main() {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	db, err := database.NewMysqlConnection(ctx)
@@ -67,6 +68,18 @@ func main() {
 	do.Provide(i, repository.NewSessionRepository)
 
 	do.Provide(i, client.NewCloudFlareService)
+
+	go func() {
+		movieService, err := do.Invoke[domain.MovieService](i)
+		if err != nil {
+			log.Fatalf("Failed to initialize movie service: %v", err)
+		}
+
+		err = movieService.ProcessUploadImageQueue(context.Background())
+		if err != nil {
+			log.Fatalf("Error processing image upload queue: %v", err)
+		}
+	}()
 
 	handler.SetupRoutes(e, i)
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", config.Env.APIPort)))

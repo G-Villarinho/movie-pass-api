@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"mime/multipart"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -13,11 +14,12 @@ import (
 var (
 	ErrGetAllIndicativeRating    = errors.New("failed to obtain all indicative ratings")
 	ErrIndicativeRatingsNotFound = errors.New("indicative ratings not found")
+	ErrCreateMovie               = errors.New("failed to create a new movie")
 )
 
 type Movie struct {
 	ID                 uuid.UUID        `gorm:"column:id;type:char(36);primaryKey"`
-	IndicativeRatingID uuid.UUID        `gorm:"column:id;type:char(36)"`
+	IndicativeRatingID uuid.UUID        `gorm:"column:indicativeRatingId;type:char(36);not null"`
 	UserID             uuid.UUID        `gorm:"column:userId;type:char(36);not null"`
 	Title              string           `gorm:"column:title;type:varchar(255);not null;index"`
 	Duration           int              `gorm:"column:duration;type:int;not null"`
@@ -56,6 +58,12 @@ func (IndicativeRating) TableName() string {
 	return "IndicativeRating"
 }
 
+type MovieImageUploadTask struct {
+	MovieID uuid.UUID `json:"movieId"`
+	Image   []byte    `json:"image"`
+	UserID  uuid.UUID `json:"userId"`
+}
+
 type MoviePayload struct {
 	Images             []*multipart.FileHeader `json:"images" validate:"validateImages"`
 	IndicativeRatingID uuid.UUID               `json:"indicativeRatingId" validate:"required,uuid"`
@@ -85,12 +93,24 @@ type MovieHandler interface {
 type MovieService interface {
 	GetAllIndicativeRating(ctx context.Context) ([]*IndicativeRatingResponse, error)
 	Create(ctx context.Context, payload MoviePayload) (*MovieResponse, error)
+	ProcessUploadImageQueue(ctx context.Context) error
 }
 
 type MovieRepository interface {
 	GetAllIndicativeRating(ctx context.Context) ([]*IndicativeRating, error)
 	Create(ctx context.Context, movie Movie) error
-	CreateMovieImage(ctx context.Context, movieImage []MovieImage) error
+	CreateMovieImage(ctx context.Context, movieImage MovieImage) error
+	AddUploadImageTaskToQueue(ctx context.Context, task MovieImageUploadTask) error
+	GetNextUploadImageTaskFromQueue(ctx context.Context) (*MovieImageUploadTask, error)
+}
+
+func (m *MoviePayload) trim() {
+	m.Title = strings.TrimSpace(m.Title)
+}
+
+func (m *MoviePayload) Validate() ValidationErrors {
+	m.trim()
+	return ValidateStruct(m)
 }
 
 func (i *IndicativeRating) ToIndicativeRatingResponse() *IndicativeRatingResponse {
@@ -113,5 +133,16 @@ func (m *Movie) ToMovieResponse() *MovieResponse {
 		Duration:         m.Duration,
 		IndicativeRating: *m.IndicativeRating.ToIndicativeRatingResponse(),
 		ImagesURL:        imagesURL,
+	}
+}
+
+func (payload *MoviePayload) ToMovie(userID uuid.UUID) *Movie {
+	return &Movie{
+		ID:                 uuid.New(),
+		IndicativeRatingID: payload.IndicativeRatingID,
+		UserID:             userID,
+		Title:              payload.Title,
+		Duration:           payload.Duration,
+		CreatedAt:          time.Now().UTC(),
 	}
 }

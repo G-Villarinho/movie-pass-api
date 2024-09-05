@@ -5,6 +5,8 @@ import (
 	"errors"
 	"log/slog"
 
+	jsoniter "github.com/json-iterator/go"
+
 	"github.com/GSVillas/movie-pass-api/domain"
 	"github.com/go-redis/redis/v8"
 	"github.com/samber/do"
@@ -75,7 +77,7 @@ func (m *MovieRepository) Create(ctx context.Context, movie domain.Movie) error 
 	return nil
 }
 
-func (m *MovieRepository) CreateMovieImage(ctx context.Context, movieImage []domain.MovieImage) error {
+func (m *MovieRepository) CreateMovieImage(ctx context.Context, movieImage domain.MovieImage) error {
 	log := slog.With(
 		slog.String("repository", "movie"),
 		slog.String("func", "create"),
@@ -90,4 +92,61 @@ func (m *MovieRepository) CreateMovieImage(ctx context.Context, movieImage []dom
 
 	log.Info("movie image creation process excuted succefully")
 	return nil
+}
+
+func (m *MovieRepository) AddUploadImageTaskToQueue(ctx context.Context, task domain.MovieImageUploadTask) error {
+	log := slog.With(
+		slog.String("repository", "movie"),
+		slog.String("func", "AddUploadImageTaskToQueue"),
+		slog.String("movieID", task.MovieID.String()),
+		slog.String("userID", task.UserID.String()),
+	)
+
+	log.Info("Adding image upload task to Redis queue")
+
+	data, err := jsoniter.Marshal(task)
+	if err != nil {
+		log.Error("Failed to serialize task for Redis", slog.String("error", err.Error()))
+		return err
+	}
+
+	if err := m.redisClient.RPush(ctx, m.getImageUploadKey(), data).Err(); err != nil {
+		log.Error("Failed to add task to Redis queue", slog.String("error", err.Error()))
+		return err
+	}
+
+	log.Info("Image upload task added to Redis queue successfully")
+	return nil
+}
+
+func (m *MovieRepository) GetNextUploadImageTaskFromQueue(ctx context.Context) (*domain.MovieImageUploadTask, error) {
+	log := slog.With(
+		slog.String("repository", "movie"),
+		slog.String("func", "GetNextUploadImageTaskFromQueue"),
+	)
+
+	log.Info("Retrieving next image upload task from Redis queue")
+
+	data, err := m.redisClient.LPop(ctx, m.getImageUploadKey()).Result()
+	if err != nil {
+		if err == redis.Nil {
+			log.Warn("No tasks found in Redis queue")
+			return nil, nil
+		}
+		log.Error("Failed to retrieve task from Redis queue", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	var task domain.MovieImageUploadTask
+	if err := jsoniter.Unmarshal([]byte(data), &task); err != nil {
+		log.Error("Failed to deserialize task from Redis", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	log.Info("Successfully retrieved image upload task from Redis queue")
+	return &task, nil
+}
+
+func (m *MovieRepository) getImageUploadKey() string {
+	return "image_upload_queue"
 }

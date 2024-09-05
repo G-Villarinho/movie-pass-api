@@ -17,7 +17,8 @@ const (
 	NotFutureDateTag  = "notfuturedate"
 	ValidateImagesTag = "validateImages"
 	MaxAgeInYears     = 200
-	MaxImagesAllowed  = 10
+	MaxImagesAllowed  = 5
+	MaxImageSize      = 5 * 1024 * 1024
 )
 
 var AllowedImagesExtensions = map[string]bool{
@@ -92,6 +93,10 @@ func imageFileValidator(fl validator.FieldLevel) bool {
 	for _, file := range images {
 		ext := strings.ToLower(filepath.Ext(file.Filename))
 		if !AllowedImagesExtensions[ext] {
+			return false
+		}
+
+		if file.Size > MaxImageSize {
 			return false
 		}
 	}

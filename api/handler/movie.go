@@ -4,8 +4,10 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strconv"
 
 	"github.com/GSVillas/movie-pass-api/domain"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/do"
 )
@@ -50,7 +52,50 @@ func (m *movieHandler) GetAllIndicativeRating(ctx echo.Context) error {
 	return ctx.JSON(http.StatusOK, response)
 }
 
-// Create implements domain.MovieHandler.
 func (m *movieHandler) Create(ctx echo.Context) error {
-	panic("unimplemented")
+	log := slog.With(
+		slog.String("handler", "movie"),
+		slog.String("func", "Create"),
+	)
+
+	log.Info("Initializing movie creation process")
+
+	form, err := ctx.MultipartForm()
+	if err != nil {
+		log.Error("Failed to parse multipart form", slog.String("error", err.Error()))
+		return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusBadRequest, nil, "Form Parsing Error", "Failed to parse multipart form data.")
+	}
+
+	duration, err := strconv.Atoi(ctx.FormValue("duration"))
+	if err != nil {
+		log.Warn("Invalid duration")
+		return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusBadRequest, nil, "Invalid Duration", "The provided duration must be a valid positive number.")
+	}
+
+	indicativeRatingID, err := uuid.Parse(ctx.FormValue("indicativeRatingId"))
+	if err != nil {
+		log.Warn("Invalid IndicativeRatingID", slog.String("indicativeRatingId", ctx.FormValue("indicativeRatingId")))
+		return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusBadRequest, nil, "Invalid IndicativeRatingID", "The provided indicative rating ID is not a valid UUID.")
+	}
+
+	payload := domain.MoviePayload{
+		Title:              ctx.FormValue("title"),
+		Duration:           duration,
+		IndicativeRatingID: indicativeRatingID,
+		Images:             form.File["images"],
+	}
+
+	if validationErrors := payload.Validate(); validationErrors != nil {
+		log.Warn("Validation failed", slog.Any("errors", validationErrors))
+		return domain.NewValidationAPIErrorResponse(ctx, http.StatusUnprocessableEntity, validationErrors)
+	}
+
+	response, err := m.movieService.Create(ctx.Request().Context(), payload)
+	if err != nil {
+		log.Error("Failed to create movie", slog.String("error", err.Error()))
+		return domain.InternalServerAPIErrorResponse(ctx)
+	}
+
+	log.Info("Movie created successfully")
+	return ctx.JSON(http.StatusCreated, response)
 }

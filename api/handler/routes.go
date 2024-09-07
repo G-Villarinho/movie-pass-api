@@ -33,8 +33,8 @@ func setupCinemaRoutes(e *echo.Echo, i *do.Injector) {
 	group := e.Group("/v1/cinemas", middleware.EnsureAuthenticated(i))
 	group.POST("", cinemaHandler.Create)
 	group.GET("", cinemaHandler.GetAll)
-	group.GET("/:cinemaId", cinemaHandler.GetByID)
-	group.DELETE("/:cinemaId", cinemaHandler.Delete)
+	group.GET("/:id", cinemaHandler.GetByID)
+	group.DELETE("/:id", cinemaHandler.Delete)
 }
 
 func setupMovieRoutes(e *echo.Echo, i *do.Injector) {
@@ -49,4 +49,6 @@ func setupMovieRoutes(e *echo.Echo, i *do.Injector) {
 	adminGroup := e.Group("/v1/admin/movies")
 	adminGroup.POST("", movieHandler.Create, middleware.EnsureAuthenticated(i))
 	adminGroup.GET("", movieHandler.GetAllByUserID, middleware.EnsureAuthenticated(i))
+	adminGroup.PUT("/:id", movieHandler.Update, middleware.EnsureAuthenticated(i))
+
 }

@@ -196,3 +196,88 @@ func (m *movieService) GetAllByUserID(ctx context.Context) ([]*domain.MovieRespo
 	log.Info("Get all movies by user id process executed succefully")
 	return moviesResponse, nil
 }
+
+func (m *movieService) Update(ctx context.Context, movieID uuid.UUID, payload domain.MovieUpdatePayload) (*domain.MovieResponse, error) {
+	log := slog.With(
+		slog.String("service", "movie"),
+		slog.String("func", "Update"),
+	)
+
+	log.Info("Initializing update movie process")
+
+	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
+	if !ok || session == nil {
+		return nil, domain.ErrUserNotFoundInContext
+	}
+
+	movie, err := m.movieRepository.GetByID(ctx, movieID, true)
+	if err != nil {
+		log.Error("Failed to get all movies by id", slog.String("error", err.Error()))
+		return nil, domain.ErrGetMoviesByID
+	}
+
+	if movie == nil {
+		log.Warn("movies not found with this id", slog.String("id", movieID.String()))
+		return nil, domain.ErrMoviesNotFound
+	}
+
+	if movie.UserID != session.UserID {
+		log.Warn("movies not belong for this user Id", slog.String("userId", session.UserID.String()))
+		return nil, domain.ErrMovieNotBelongUser
+	}
+
+	indicativeRatings, err := m.movieRepository.GetAllIndicativeRating(ctx)
+	if err != nil {
+		log.Error("Failed to get all indicative rating", slog.String("error", err.Error()))
+		return nil, domain.ErrGetAllIndicativeRating
+	}
+
+	if indicativeRatings == nil {
+		log.Warn("indicative ratings not found")
+		return nil, domain.ErrIndicativeRatingsNotFound
+	}
+
+	var indicativeRating domain.IndicativeRating
+	if payload.IndicativeRatingID != nil {
+		exists := false
+		for _, rating := range indicativeRatings {
+			if rating.ID == *payload.IndicativeRatingID {
+				indicativeRating = *rating
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			log.Warn("Indicative rating ID not found", slog.String("indicativeRatingID", payload.IndicativeRatingID.String()))
+			return nil, domain.ErrIndicativeRatingNotFound
+		}
+	}
+
+	updates := map[string]any{}
+
+	if payload.IndicativeRatingID != nil {
+		movie.IndicativeRating = indicativeRating
+		updates["indicativeRatingId"] = *payload.IndicativeRatingID
+		log.Info("Updating indicativeRatingId", slog.String("indicativeRatingId", payload.IndicativeRatingID.String()))
+	}
+
+	if payload.Title != nil {
+		movie.Title = *payload.Title
+		updates["title"] = *payload.Title
+		log.Info("Updating title", slog.String("title", *payload.Title))
+	}
+
+	if payload.Duration != nil {
+		movie.Duration = *payload.Duration
+		updates["duration"] = *payload.Duration
+		log.Info("Updating duration", slog.Int("duration", *payload.Duration))
+	}
+
+	if err := m.movieRepository.Update(ctx, movieID, updates); err != nil {
+		log.Error("Failed to update movie", slog.String("error", err.Error()))
+		return nil, domain.ErrUpdateMovie
+	}
+
+	log.Info("Movie update process executed successfully")
+	return movie.ToMovieResponse(), nil
+}

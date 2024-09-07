@@ -14,9 +14,14 @@ import (
 var (
 	ErrGetAllIndicativeRating    = errors.New("failed to obtain all indicative ratings")
 	ErrIndicativeRatingsNotFound = errors.New("indicative ratings not found")
+	ErrIndicativeRatingNotFound  = errors.New("indicative rating not found")
 	ErrCreateMovie               = errors.New("failed to create a new movie")
 	ErrGetMoviesByUserID         = errors.New("failed to get all movies by userID")
-	ErrMoviesNotFoundByUserID    = errors.New("")
+	ErrGetMoviesByID             = errors.New("failed to get movies by id")
+	ErrMoviesNotFoundByUserID    = errors.New("no movies found for this user")
+	ErrMoviesNotFound            = errors.New("no movie found")
+	ErrUpdateMovie               = errors.New("failed to update a movie")
+	ErrMovieNotBelongUser        = errors.New("the movie does not belong to the user")
 )
 
 type Movie struct {
@@ -73,6 +78,12 @@ type MoviePayload struct {
 	Duration           int                     `json:"duration" validate:"required,gt=0"`
 }
 
+type MovieUpdatePayload struct {
+	IndicativeRatingID *uuid.UUID `json:"indicativeRatingId,omitempty" validate:"omitempty,uuid"`
+	Title              *string    `json:"title,omitempty" validate:"omitempty,min=1,max=255"`
+	Duration           *int       `json:"duration,omitempty" validate:"omitempty,gt=0"`
+}
+
 type IndicativeRatingResponse struct {
 	ID          uuid.UUID `json:"id"`
 	Description string    `json:"description"`
@@ -96,6 +107,7 @@ type MovieHandler interface {
 	GetAllIndicativeRating(ctx echo.Context) error
 	Create(ctx echo.Context) error
 	GetAllByUserID(ctx echo.Context) error
+	Update(ctx echo.Context) error
 }
 
 type MovieService interface {
@@ -103,6 +115,7 @@ type MovieService interface {
 	Create(ctx context.Context, payload MoviePayload) (*MovieResponse, error)
 	ProcessUploadImageQueue(ctx context.Context) error
 	GetAllByUserID(ctx context.Context) ([]*MovieResponse, error)
+	Update(ctx context.Context, movieID uuid.UUID, payload MovieUpdatePayload) (*MovieResponse, error)
 }
 
 type MovieRepository interface {
@@ -112,6 +125,8 @@ type MovieRepository interface {
 	AddUploadImageTaskToQueue(ctx context.Context, task MovieImageUploadTask) error
 	GetNextUploadImageTaskFromQueue(ctx context.Context) (*MovieImageUploadTask, error)
 	GetALlByUserID(ctx context.Context, userID uuid.UUID) ([]*Movie, error)
+	Update(ctx context.Context, movieID uuid.UUID, updates map[string]any) error
+	GetByID(ctx context.Context, movieID uuid.UUID, withPreload bool) (*Movie, error)
 }
 
 func (m *MoviePayload) trim() {
@@ -120,6 +135,24 @@ func (m *MoviePayload) trim() {
 
 func (m *MoviePayload) Validate() ValidationErrors {
 	m.trim()
+	return ValidateStruct(m)
+}
+
+func (m *MovieUpdatePayload) trim() {
+	if m.Title != nil {
+		trimmedTitle := strings.TrimSpace(*m.Title)
+		m.Title = &trimmedTitle
+	}
+}
+
+func (m *MovieUpdatePayload) Validate() ValidationErrors {
+	m.trim()
+	if m.IndicativeRatingID == nil && m.Title == nil && m.Duration == nil {
+		return ValidationErrors{
+			General: ValidationMessages[General],
+		}
+	}
+
 	return ValidateStruct(m)
 }
 

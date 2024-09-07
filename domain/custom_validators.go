@@ -16,6 +16,7 @@ const (
 	NotTooOldTag      = "nottooold"
 	NotFutureDateTag  = "notfuturedate"
 	ValidateImagesTag = "validateImages"
+	General           = "general"
 	MaxAgeInYears     = 200
 	MaxImagesAllowed  = 5
 	MaxImageSize      = 5 * 1024 * 1024

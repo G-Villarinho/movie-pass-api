@@ -8,6 +8,7 @@ import (
 
 	"github.com/GSVillas/movie-pass-api/domain"
 	"github.com/google/uuid"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/labstack/echo/v4"
 	"github.com/samber/do"
 )
@@ -120,5 +121,61 @@ func (m *movieHandler) GetAllByUserID(ctx echo.Context) error {
 	}
 
 	log.Info("Successfully retrieved movies for user", slog.String("userID", ctx.Request().Header.Get("userID")))
+	return ctx.JSON(http.StatusOK, response)
+}
+
+func (m *movieHandler) Update(ctx echo.Context) error {
+	log := slog.With(
+		slog.String("handler", "movie"),
+		slog.String("func", "Update"),
+	)
+
+	log.Info("Initializing update movie process")
+
+	movieIDParam := ctx.Param("id")
+	movieID, err := uuid.Parse(movieIDParam)
+	if err != nil {
+		log.Warn("Invalid Movie ID", slog.String("movieID", movieIDParam))
+		return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusBadRequest, nil, "Invalid Movie ID", "The provided movie ID is not a valid UUID.")
+	}
+
+	var payload domain.MovieUpdatePayload
+	if err := jsoniter.NewDecoder(ctx.Request().Body).Decode(&payload); err != nil {
+		log.Warn("Failed to decode JSON payload", slog.String("error", err.Error()))
+		return domain.CannotBindPayloadAPIErrorResponse(ctx)
+	}
+
+	if validationErrors := payload.Validate(); validationErrors != nil {
+		log.Warn("Validation failed", slog.Any("errors", validationErrors))
+		return domain.NewValidationAPIErrorResponse(ctx, http.StatusUnprocessableEntity, validationErrors)
+	}
+
+	response, err := m.movieService.Update(ctx.Request().Context(), movieID, payload)
+	if err != nil {
+		if errors.Is(err, domain.ErrUserNotFoundInContext) {
+			log.Warn("User not found in session")
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusUnauthorized, nil, "Unauthorized", "User is not authenticated or session has expired.")
+		}
+
+		if errors.Is(err, domain.ErrMoviesNotFound) {
+			log.Warn("Movie not found", slog.String("movieID", movieID.String()))
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusNotFound, nil, "Movie Not Found", "The movie you are trying to update does not exist.")
+		}
+
+		if errors.Is(err, domain.ErrMovieNotBelongUser) {
+			log.Warn("User does not own the movie", slog.String("userID", ctx.Request().Header.Get("userID")), slog.String("movieID", movieID.String()))
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusForbidden, nil, "Forbidden", "You are not allowed to update this movie because it does not belong to you.")
+		}
+
+		if errors.Is(err, domain.ErrIndicativeRatingNotFound) {
+			log.Warn("Indicative rating not found", slog.String("indicativeRatingID", payload.IndicativeRatingID.String()))
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusBadRequest, nil, "Invalid Indicative Rating", "The provided indicative rating does not exist.")
+		}
+
+		log.Error("Failed to update movie", slog.String("error", err.Error()))
+		return domain.InternalServerAPIErrorResponse(ctx)
+	}
+
+	log.Info("Movie updated successfully")
 	return ctx.JSON(http.StatusOK, response)
 }

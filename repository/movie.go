@@ -157,7 +157,7 @@ func (m *MovieRepository) GetALlByUserID(ctx context.Context, userID uuid.UUID) 
 	log.Info("Initializing create movie image process")
 
 	var movies []*domain.Movie
-	if err := m.db.WithContext(ctx).Where("userId = ?", userID.String()).Preload("Images").Find(&movies).Error; err != nil {
+	if err := m.db.WithContext(ctx).Where("userId = ?", userID.String()).Preload("Images").Preload("IndicativeRating").Find(&movies).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			log.Warn("No movies records found")
 			return nil, nil
@@ -169,6 +169,52 @@ func (m *MovieRepository) GetALlByUserID(ctx context.Context, userID uuid.UUID) 
 
 	log.Info("Get all movies by user id process executed successfully")
 	return movies, nil
+}
+
+func (m *MovieRepository) Update(ctx context.Context, movieID uuid.UUID, updates map[string]any) error {
+	log := slog.With(
+		slog.String("repository", "movie"),
+		slog.String("func", "Update"),
+		slog.String("movieID", movieID.String()),
+	)
+
+	log.Info("Initializing update movie process")
+
+	if err := m.db.Model(&domain.Movie{}).Where("id = ?", movieID).Updates(updates).Error; err != nil {
+		log.Error("Failed to update movie", slog.String("error", err.Error()))
+		return err
+	}
+
+	log.Info("Movie update process executed successfully")
+	return nil
+}
+
+func (m *MovieRepository) GetByID(ctx context.Context, movieID uuid.UUID, withPreload bool) (*domain.Movie, error) {
+	log := slog.With(
+		slog.String("repository", "movie"),
+		slog.String("func", "GetByID"),
+	)
+
+	log.Info("Initializing get movie by ID process")
+
+	var movie domain.Movie
+	db := m.db.WithContext(ctx)
+
+	if withPreload {
+		db = db.Preload("Images").Preload("IndicativeRating")
+	}
+
+	if err := db.First(&movie, "id = ?", movieID).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Warn("No movie record found", slog.String("movieID", movieID.String()))
+			return nil, nil
+		}
+		log.Error("Failed to get movie by ID", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	log.Info("Get movie by ID process executed successfully")
+	return &movie, nil
 }
 
 func (m *MovieRepository) getImageUploadKey() string {

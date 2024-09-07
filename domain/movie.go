@@ -12,15 +12,15 @@ import (
 )
 
 var (
-	ErrGetAllIndicativeRating    = errors.New("failed to obtain all indicative ratings")
+	ErrGetAllIndicativeRating    = errors.New("error to obtain all indicative ratings")
 	ErrIndicativeRatingsNotFound = errors.New("indicative ratings not found")
 	ErrIndicativeRatingNotFound  = errors.New("indicative rating not found")
-	ErrCreateMovie               = errors.New("failed to create a new movie")
-	ErrGetMoviesByUserID         = errors.New("failed to get all movies by userID")
-	ErrGetMoviesByID             = errors.New("failed to get movies by id")
+	ErrCreateMovie               = errors.New("error to create a new movie")
+	ErrGetMoviesByUserID         = errors.New("error to get all movies by userID")
+	ErrGetMoviesByID             = errors.New("error to get movies by id")
 	ErrMoviesNotFoundByUserID    = errors.New("no movies found for this user")
 	ErrMoviesNotFound            = errors.New("no movie found")
-	ErrUpdateMovie               = errors.New("failed to update a movie")
+	ErrUpdateMovie               = errors.New("error to update a movie")
 	ErrMovieNotBelongUser        = errors.New("the movie does not belong to the user")
 )
 
@@ -113,7 +113,7 @@ type MovieHandler interface {
 type MovieService interface {
 	GetAllIndicativeRating(ctx context.Context) ([]*IndicativeRatingResponse, error)
 	Create(ctx context.Context, payload MoviePayload) (*MovieResponse, error)
-	ProcessUploadImageQueue(ctx context.Context) error
+	ProcessUploadImageQueue(ctx context.Context, task MovieImageUploadTask) error
 	GetAllByUserID(ctx context.Context) ([]*MovieResponse, error)
 	Update(ctx context.Context, movieID uuid.UUID, payload MovieUpdatePayload) (*MovieResponse, error)
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/GSVillas/movie-pass-api/client"
@@ -32,7 +33,7 @@ func main() {
 		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, echo.HeaderAuthorization},
 	}))
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	db, err := database.NewMysqlConnection(ctx)
@@ -53,6 +54,8 @@ func main() {
 		return redisClient, nil
 	})
 
+	do.Provide(i, client.NewCloudFlareService)
+
 	do.Provide(i, handler.NewCinemaHandler)
 	do.Provide(i, handler.NewMovieHandler)
 	do.Provide(i, handler.NewUserHandler)
@@ -67,17 +70,36 @@ func main() {
 	do.Provide(i, repository.NewUserRepository)
 	do.Provide(i, repository.NewSessionRepository)
 
-	do.Provide(i, client.NewCloudFlareService)
+	movieRepository, err := do.Invoke[domain.MovieRepository](i)
+	if err != nil {
+		panic(err)
+	}
+
+	movieService, err := do.Invoke[domain.MovieService](i)
+	if err != nil {
+		panic(err)
+	}
 
 	go func() {
-		movieService, err := do.Invoke[domain.MovieService](i)
-		if err != nil {
-			log.Fatalf("Failed to initialize movie service: %v", err)
-		}
+		for {
+			task, err := movieRepository.GetNextUploadImageTaskFromQueue(context.Background())
+			if err != nil {
+				slog.Error(err.Error())
+				continue
+			}
 
-		err = movieService.ProcessUploadImageQueue(context.Background())
-		if err != nil {
-			log.Fatalf("Error processing image upload queue: %v", err)
+			if task == nil {
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			slog.Info("start upload image in cloud")
+			if err := movieService.ProcessUploadImageQueue(context.Background(), *task); err != nil {
+				slog.Error(err.Error())
+				continue
+			}
+
+			slog.Info("Image uploaded successfully")
 		}
 	}()
 

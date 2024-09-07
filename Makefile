@@ -29,11 +29,16 @@ lint:
 clean:
 	rm -f $(PRIVATE_KEY_FILE) $(PUBLIC_KEY_FILE)
 
-run:
-	@echo "Runnig application..."
-	go run main
-	@echo "Runnnig commpleted succefully"
+run-api:
+	@echo "Running API..."
+	go run cmd/api/main.go
+	@echo "API stopped"
 
+run-worker:
+	@echo "Running worker for upload images..."
+	go run cmd/worker/uploadImages/main.go
+	@echo "Worker stopped"
+	
 migrations:
 	@echo "Runnig migrations..."
 	go run config/database/migrations/migrations.go

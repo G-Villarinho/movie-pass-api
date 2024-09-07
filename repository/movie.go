@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 
 	"github.com/google/uuid"
@@ -121,30 +122,20 @@ func (m *MovieRepository) AddUploadImageTaskToQueue(ctx context.Context, task do
 }
 
 func (m *MovieRepository) GetNextUploadImageTaskFromQueue(ctx context.Context) (*domain.MovieImageUploadTask, error) {
-	log := slog.With(
-		slog.String("repository", "movie"),
-		slog.String("func", "GetNextUploadImageTaskFromQueue"),
-	)
-
-	log.Info("Retrieving next image upload task from Redis queue")
-
 	data, err := m.redisClient.LPop(ctx, m.getImageUploadKey()).Result()
 	if err != nil {
 		if err == redis.Nil {
-			log.Warn("No tasks found in Redis queue")
 			return nil, nil
 		}
-		log.Error("Failed to retrieve task from Redis queue", slog.String("error", err.Error()))
+
 		return nil, err
 	}
 
 	var task domain.MovieImageUploadTask
 	if err := jsoniter.Unmarshal([]byte(data), &task); err != nil {
-		log.Error("Failed to deserialize task from Redis", slog.String("error", err.Error()))
-		return nil, err
+		return nil, fmt.Errorf("error to deserialize task from Redis. error:%w", err)
 	}
 
-	log.Info("Successfully retrieved image upload task from Redis queue")
 	return &task, nil
 }
 

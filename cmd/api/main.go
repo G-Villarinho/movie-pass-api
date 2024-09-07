@@ -6,8 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/GSVillas/movie-pass-api/api/handler"
 	"github.com/GSVillas/movie-pass-api/client"
+	"github.com/GSVillas/movie-pass-api/cmd/api/handler"
 	"github.com/GSVillas/movie-pass-api/config"
 	"github.com/GSVillas/movie-pass-api/config/database"
 	"github.com/GSVillas/movie-pass-api/domain"

@@ -28,6 +28,7 @@ var (
 
 type CloudFlareService interface {
 	UploadImage(imageBytes []byte, filename string) (string, error)
+	DeleteImage(imageID string) error
 }
 
 type cloudFlareService struct {
@@ -70,20 +71,17 @@ func (c *cloudFlareService) UploadImage(imageBytes []byte, filename string) (str
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
-	// Cria o arquivo de formulário
 	part, err := writer.CreateFormFile("file", filename)
 	if err != nil {
 		log.Error("Failed to create form file", slog.String("error", err.Error()))
 		return "", ErrCreateFormFile
 	}
 
-	// Copia o array de bytes para o buffer
 	if _, err := io.Copy(part, bytes.NewReader(imageBytes)); err != nil {
 		log.Error("Failed to copy file to buffer", slog.String("error", err.Error()))
 		return "", ErrCopyFile
 	}
 
-	// Fecha o writer
 	if err := writer.Close(); err != nil {
 		log.Error("Failed to close writer", slog.String("error", err.Error()))
 		return "", ErrCloseWriter
@@ -132,4 +130,40 @@ func (c *cloudFlareService) UploadImage(imageBytes []byte, filename string) (str
 
 	log.Info("Image upload successful", slog.String("imageURL", imageURL))
 	return imageURL, nil
+}
+
+func (c *cloudFlareService) DeleteImage(imageID string) error {
+	log := slog.With(
+		slog.String("client", "cloudFlare"),
+		slog.String("func", "DeleteImage"),
+		slog.String("imageID", imageID),
+	)
+
+	log.Info("Initializing image deletion process")
+
+	deleteURL := fmt.Sprintf("%s/%s", config.Env.CloudFlareAccountAPI, imageID)
+
+	req, err := http.NewRequest("DELETE", deleteURL, nil)
+	if err != nil {
+		log.Error("Failed to create request", slog.String("error", err.Error()))
+		return ErrCreateRequest
+	}
+
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Env.CloudFlareApiKey))
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Error("Failed to send request", slog.String("error", err.Error()))
+		return ErrSendRequest
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		log.Error("Failed to delete image", slog.Int("status", resp.StatusCode))
+		return ErrUploadFailed
+	}
+
+	log.Info("Image deleted successfully")
+	return nil
 }

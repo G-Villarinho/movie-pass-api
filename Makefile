@@ -31,7 +31,7 @@ clean:
 
 run:
 	@echo "Runnig application..."
-	go run main.go
+	go run main
 	@echo "Runnnig commpleted succefully"
 
 migrations:

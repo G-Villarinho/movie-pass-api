@@ -15,6 +15,8 @@ var (
 	ErrGetAllIndicativeRating    = errors.New("failed to obtain all indicative ratings")
 	ErrIndicativeRatingsNotFound = errors.New("indicative ratings not found")
 	ErrCreateMovie               = errors.New("failed to create a new movie")
+	ErrGetMoviesByUserID         = errors.New("failed to get all movies by userID")
+	ErrMoviesNotFoundByUserID    = errors.New("")
 )
 
 type Movie struct {
@@ -78,22 +80,29 @@ type IndicativeRatingResponse struct {
 }
 
 type MovieResponse struct {
-	ID               uuid.UUID                `json:"id"`
-	ImagesURL        []string                 `json:"imagesUrl,omitempty"`
-	Title            string                   `json:"title"`
-	Duration         int                      `json:"duration"`
-	IndicativeRating IndicativeRatingResponse `json:"indicativeRating,omitempty"`
+	ID               uuid.UUID                 `json:"id"`
+	Title            string                    `json:"title"`
+	Duration         int                       `json:"duration"`
+	IndicativeRating *IndicativeRatingResponse `json:"indicativeRating,omitempty"`
+	MovieImages      []*MovieImageResponse     `json:"movieImages"`
+}
+
+type MovieImageResponse struct {
+	ID       uuid.UUID `json:"id"`
+	ImageURL string    `json:"imageUrl,omitempty"`
 }
 
 type MovieHandler interface {
 	GetAllIndicativeRating(ctx echo.Context) error
 	Create(ctx echo.Context) error
+	GetAllByUserID(ctx echo.Context) error
 }
 
 type MovieService interface {
 	GetAllIndicativeRating(ctx context.Context) ([]*IndicativeRatingResponse, error)
 	Create(ctx context.Context, payload MoviePayload) (*MovieResponse, error)
 	ProcessUploadImageQueue(ctx context.Context) error
+	GetAllByUserID(ctx context.Context) ([]*MovieResponse, error)
 }
 
 type MovieRepository interface {
@@ -102,6 +111,7 @@ type MovieRepository interface {
 	CreateMovieImage(ctx context.Context, movieImage MovieImage) error
 	AddUploadImageTaskToQueue(ctx context.Context, task MovieImageUploadTask) error
 	GetNextUploadImageTaskFromQueue(ctx context.Context) (*MovieImageUploadTask, error)
+	GetALlByUserID(ctx context.Context, userID uuid.UUID) ([]*Movie, error)
 }
 
 func (m *MoviePayload) trim() {
@@ -122,17 +132,27 @@ func (i *IndicativeRating) ToIndicativeRatingResponse() *IndicativeRatingRespons
 }
 
 func (m *Movie) ToMovieResponse() *MovieResponse {
-	imagesURL := make([]string, len(m.Images))
-	for i, image := range m.Images {
-		imagesURL[i] = image.ImageURL
+	var MovieImagesResponse []*MovieImageResponse
+
+	if len(m.Images) > 0 {
+		for _, movieImage := range m.Images {
+			MovieImagesResponse = append(MovieImagesResponse, movieImage.ToMovieImageResponse())
+		}
 	}
 
 	return &MovieResponse{
 		ID:               m.ID,
 		Title:            m.Title,
 		Duration:         m.Duration,
-		IndicativeRating: *m.IndicativeRating.ToIndicativeRatingResponse(),
-		ImagesURL:        imagesURL,
+		IndicativeRating: m.IndicativeRating.ToIndicativeRatingResponse(),
+		MovieImages:      MovieImagesResponse,
+	}
+}
+
+func (m *MovieImage) ToMovieImageResponse() *MovieImageResponse {
+	return &MovieImageResponse{
+		ID:       m.ID,
+		ImageURL: m.ImageURL,
 	}
 }
 

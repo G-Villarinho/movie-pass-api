@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 
+	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 
 	"github.com/GSVillas/movie-pass-api/domain"
@@ -145,6 +146,29 @@ func (m *MovieRepository) GetNextUploadImageTaskFromQueue(ctx context.Context) (
 
 	log.Info("Successfully retrieved image upload task from Redis queue")
 	return &task, nil
+}
+
+func (m *MovieRepository) GetALlByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Movie, error) {
+	log := slog.With(
+		slog.String("repository", "movie"),
+		slog.String("func", "GetALlByUserID"),
+	)
+
+	log.Info("Initializing create movie image process")
+
+	var movies []*domain.Movie
+	if err := m.db.WithContext(ctx).Where("userId = ?", userID.String()).Preload("Images").Find(&movies).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			log.Warn("No movies records found")
+			return nil, nil
+		}
+
+		log.Error("Failed to get all movies by user id", slog.String("error", err.Error()))
+		return nil, err
+	}
+
+	log.Info("Get all movies by user id process executed successfully")
+	return movies, nil
 }
 
 func (m *MovieRepository) getImageUploadKey() string {

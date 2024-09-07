@@ -43,7 +43,8 @@ func setupMovieRoutes(e *echo.Echo, i *do.Injector) {
 		panic(err)
 	}
 
-	group := e.Group("/v1/movies")
-	group.POST("", movieHandler.Create, middleware.EnsureAuthenticated(i))
-	group.GET("/indicativeRating", movieHandler.GetAllIndicativeRating)
+	adminGroup := e.Group("/v1/admin/movies")
+	adminGroup.POST("", movieHandler.Create, middleware.EnsureAuthenticated(i))
+	adminGroup.GET("/indicative-rating", movieHandler.GetAllIndicativeRating)
+	adminGroup.GET("", movieHandler.GetAllByUserID, middleware.EnsureAuthenticated(i), middleware.EnsureAuthenticated(i))
 }

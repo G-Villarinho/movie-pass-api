@@ -99,3 +99,26 @@ func (m *movieHandler) Create(ctx echo.Context) error {
 	log.Info("Movie created successfully")
 	return ctx.JSON(http.StatusCreated, response)
 }
+
+func (m *movieHandler) GetAllByUserID(ctx echo.Context) error {
+	log := slog.With(
+		slog.String("handler", "movie"),
+		slog.String("func", "GetAllByUserID"),
+	)
+
+	log.Info("Starting process to retrieve all movies by user ID")
+
+	response, err := m.movieService.GetAllByUserID(ctx.Request().Context())
+	if err != nil {
+		if errors.Is(err, domain.ErrMoviesNotFoundByUserID) {
+			log.Warn("No movies found for the user", slog.String("error", err.Error()))
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusNotFound, nil, "Movies Not Found", "No movies were found for the current user. If you believe this is a mistake, please contact support.")
+		}
+
+		log.Error("Failed to retrieve movies by user ID", slog.String("error", err.Error()))
+		return domain.InternalServerAPIErrorResponse(ctx)
+	}
+
+	log.Info("Successfully retrieved movies for user", slog.String("userID", ctx.Request().Header.Get("userID")))
+	return ctx.JSON(http.StatusOK, response)
+}

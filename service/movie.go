@@ -112,26 +112,40 @@ func (m *movieService) ProcessUploadImageQueue(ctx context.Context) error {
 		slog.String("func", "processUploadImageQueue"),
 	)
 
-	log.Info("Initializing create movie process")
+	log.Info("Initializing image upload queue processor")
+
+	minInterval := 5 * time.Second
+	maxInterval := 1 * time.Minute
+	checkInterval := minInterval
 
 	for {
 		task, err := m.movieRepository.GetNextUploadImageTaskFromQueue(ctx)
 		if err != nil {
 			log.Error("Failed to get task from queue", slog.String("error", err.Error()))
-			time.Sleep(time.Second * 5)
+			time.Sleep(checkInterval)
+			continue
 		}
 
 		if task == nil {
 			log.Info("No tasks found in the queue, waiting before retrying")
-			time.Sleep(time.Second * 5)
+
+			checkInterval *= 2
+			if checkInterval > maxInterval {
+				checkInterval = maxInterval
+			}
+
+			time.Sleep(checkInterval)
 			continue
 		}
+
+		checkInterval = minInterval
+
+		log.Info("Processing task", slog.String("movieID", task.MovieID.String()))
 
 		filename := fmt.Sprintf("movie_%s_image_%d.jpg", task.MovieID.String(), time.Now().Unix())
 		imageURL, err := m.cloudFlareService.UploadImage(task.Image, filename)
 		if err != nil {
 			log.Error("Failed to upload image to Cloudflare", slog.String("error", err.Error()))
-			time.Sleep(time.Second * 5)
 			continue
 		}
 
@@ -143,10 +157,42 @@ func (m *movieService) ProcessUploadImageQueue(ctx context.Context) error {
 
 		if err := m.movieRepository.CreateMovieImage(ctx, movieImage); err != nil {
 			log.Error("Failed to save movie image to the database", slog.String("error", err.Error()))
-			time.Sleep(time.Second * 5)
 			continue
 		}
 
 		log.Info("Successfully uploaded image to Cloudflare", slog.String("movieID", task.MovieID.String()))
 	}
+}
+
+func (m *movieService) GetAllByUserID(ctx context.Context) ([]*domain.MovieResponse, error) {
+	log := slog.With(
+		slog.String("service", "movie"),
+		slog.String("func", "GetAllByUserID"),
+	)
+
+	log.Info("Initializing get all movie by user id process")
+
+	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
+	if !ok || session == nil {
+		return nil, domain.ErrUserNotFoundInContext
+	}
+
+	movies, err := m.movieRepository.GetALlByUserID(ctx, session.UserID)
+	if err != nil {
+		log.Error("Failed to get all movies by user id", slog.String("error", err.Error()))
+		return nil, domain.ErrGetMoviesByUserID
+	}
+
+	if movies == nil {
+		log.Warn("movies not found for this user id", slog.String("userID", session.UserID.String()))
+		return nil, domain.ErrMoviesNotFoundByUserID
+	}
+
+	var moviesResponse []*domain.MovieResponse
+	for _, movie := range movies {
+		moviesResponse = append(moviesResponse, movie.ToMovieResponse())
+	}
+
+	log.Info("Get all movies by user id process executed succefully")
+	return moviesResponse, nil
 }

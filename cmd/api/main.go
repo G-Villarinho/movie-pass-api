@@ -4,14 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"log/slog"
 	"time"
 
 	"github.com/GSVillas/movie-pass-api/client"
 	"github.com/GSVillas/movie-pass-api/cmd/api/handler"
 	"github.com/GSVillas/movie-pass-api/config"
 	"github.com/GSVillas/movie-pass-api/config/database"
-	"github.com/GSVillas/movie-pass-api/domain"
 	"github.com/GSVillas/movie-pass-api/repository"
 	"github.com/GSVillas/movie-pass-api/service"
 	"github.com/go-redis/redis/v8"
@@ -27,6 +25,10 @@ func main() {
 
 	e := echo.New()
 	i := do.New()
+
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: `{"time":"${time_rfc3339_nano}","method":"${method}","uri":"${uri}","status":${status},"latency":"${latency_human}"}\n`,
+	}))
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{config.Env.FrontURL},
@@ -69,39 +71,6 @@ func main() {
 	do.Provide(i, repository.NewMovieRepository)
 	do.Provide(i, repository.NewUserRepository)
 	do.Provide(i, repository.NewSessionRepository)
-
-	movieRepository, err := do.Invoke[domain.MovieRepository](i)
-	if err != nil {
-		panic(err)
-	}
-
-	movieService, err := do.Invoke[domain.MovieService](i)
-	if err != nil {
-		panic(err)
-	}
-
-	go func() {
-		for {
-			task, err := movieRepository.GetNextUploadImageTaskFromQueue(context.Background())
-			if err != nil {
-				slog.Error(err.Error())
-				continue
-			}
-
-			if task == nil {
-				time.Sleep(5 * time.Second)
-				continue
-			}
-
-			slog.Info("start upload image in cloud")
-			if err := movieService.ProcessUploadImageQueue(context.Background(), *task); err != nil {
-				slog.Error(err.Error())
-				continue
-			}
-
-			slog.Info("Image uploaded successfully")
-		}
-	}()
 
 	handler.SetupRoutes(e, i)
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%s", config.Env.APIPort)))

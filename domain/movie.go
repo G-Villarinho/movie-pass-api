@@ -71,6 +71,10 @@ type MovieImageUploadTask struct {
 	UserID  uuid.UUID `json:"userId"`
 }
 
+type MovieImageDeleteTask struct {
+	ImageID uuid.UUID `json:"imageId"`
+}
+
 type MoviePayload struct {
 	Images             []*multipart.FileHeader `json:"images" validate:"validateImages"`
 	IndicativeRatingID uuid.UUID               `json:"indicativeRatingId" validate:"required,uuid"`
@@ -108,6 +112,7 @@ type MovieHandler interface {
 	Create(ctx echo.Context) error
 	GetAllByUserID(ctx echo.Context) error
 	Update(ctx echo.Context) error
+	Delete(ctx echo.Context) error
 }
 
 type MovieService interface {
@@ -116,6 +121,8 @@ type MovieService interface {
 	ProcessUploadImageQueue(ctx context.Context, task MovieImageUploadTask) error
 	GetAllByUserID(ctx context.Context) ([]*MovieResponse, error)
 	Update(ctx context.Context, movieID uuid.UUID, payload MovieUpdatePayload) (*MovieResponse, error)
+	Delete(ctx context.Context, movieID uuid.UUID) error
+	ProcessDeleteImageQueue(ctx context.Context, task MovieImageDeleteTask) error
 }
 
 type MovieRepository interface {

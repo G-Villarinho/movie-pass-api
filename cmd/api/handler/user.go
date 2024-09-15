@@ -46,7 +46,6 @@ func (u *userHandler) Create(ctx echo.Context) error {
 
 	if err := u.userService.Create(ctx.Request().Context(), payload); err != nil {
 		if errors.Is(err, domain.ErrEmailAlreadyRegister) {
-			log.Warn(err.Error())
 			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusConflict, nil, "conflict", "The email already registered. Please try again with a different email.")
 		}
 
@@ -76,7 +75,7 @@ func (u *userHandler) SignIn(ctx echo.Context) error {
 	response, err := u.userService.SignIn(ctx.Request().Context(), payload)
 	if err != nil {
 		if errors.Is(err, domain.ErrUserNotFound) || errors.Is(err, domain.ErrInvalidPassword) {
-			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusUnauthorized, nil, "Unauthorized credentials", "Unauthorized credentials. Review the data sent.")
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusUnauthorized, nil, "Unauthorized", "Invalid email or password. Please check your credentials and try again.")
 		}
 
 		log.Error(err.Error())

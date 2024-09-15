@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"log/slog"
 	"strings"
 
 	"github.com/GSVillas/movie-pass-api/domain"
@@ -14,6 +15,7 @@ func EnsureAuthenticated(i *do.Injector) echo.MiddlewareFunc {
 		return func(ctx echo.Context) error {
 			sessionService, err := do.Invoke[domain.SessionService](i)
 			if err != nil {
+				slog.Error(err.Error())
 				return domain.InternalServerAPIErrorResponse(ctx)
 			}
 
@@ -33,6 +35,7 @@ func EnsureAuthenticated(i *do.Injector) echo.MiddlewareFunc {
 					return domain.AccessDeniedAPIErrorResponse(ctx)
 				}
 
+				slog.Error(err.Error())
 				return domain.InternalServerAPIErrorResponse(ctx)
 			}
 

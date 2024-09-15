@@ -55,7 +55,7 @@ func (s *sessionRepository) GetSession(ctx context.Context, userID uuid.UUID) (*
 	sessionJSON, err := s.redisClient.Get(ctx, s.getSessionKey(userID.String())).Result()
 	if err != nil {
 		if err == redis.Nil {
-			return nil, domain.ErrSessionNotFound
+			return nil, nil
 		}
 		return nil, err
 	}

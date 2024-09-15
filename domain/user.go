@@ -15,10 +15,8 @@ import (
 var (
 	ErrUserNotFound          = errors.New("user not found")
 	ErrEmailAlreadyRegister  = errors.New("email already exists")
-	ErrHashingPassword       = errors.New("failed to hash password")
 	ErrInvalidPassword       = errors.New("invalid password")
 	ErrUserNotFoundInContext = errors.New("user not found in context")
-	ErrCreateUser            = errors.New("create user fail")
 	ErrGetUserByEmail        = errors.New("get user by email fail")
 )
 

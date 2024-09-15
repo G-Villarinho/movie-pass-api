@@ -11,10 +11,10 @@ import (
 )
 
 var (
-	ErrCreateCinema   = errors.New("fail to create a new cinema")
-	ErrGetCinema      = errors.New("fail to get cinema")
+	ErrCreateCinema   = errors.New("error to create a new cinema")
+	ErrGetCinema      = errors.New("error to get cinema")
 	ErrCinemaNotFound = errors.New("cinema not found")
-	ErrDeleteCinema   = errors.New("fail to delete cinema")
+	ErrDeleteCinema   = errors.New("error to delete cinema")
 )
 
 type Cinema struct {

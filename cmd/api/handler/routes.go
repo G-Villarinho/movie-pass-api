@@ -10,6 +10,7 @@ import (
 func SetupRoutes(e *echo.Echo, i *do.Injector) {
 	setupUserRoutes(e, i)
 	setupCinemaRoutes(e, i)
+	setupMovieRoutes(e, i)
 }
 
 func setupUserRoutes(e *echo.Echo, i *do.Injector) {
@@ -32,6 +33,22 @@ func setupCinemaRoutes(e *echo.Echo, i *do.Injector) {
 	group := e.Group("/v1/cinemas", middleware.EnsureAuthenticated(i))
 	group.POST("", cinemaHandler.Create)
 	group.GET("", cinemaHandler.GetAll)
-	group.GET("/:cinemaId", cinemaHandler.GetByID)
-	group.DELETE("/:cinemaId", cinemaHandler.Delete)
+	group.GET("/:id", cinemaHandler.GetByID)
+	group.DELETE("/:id", cinemaHandler.Delete)
+}
+
+func setupMovieRoutes(e *echo.Echo, i *do.Injector) {
+	movieHandler, err := do.Invoke[domain.MovieHandler](i)
+	if err != nil {
+		panic(err)
+	}
+
+	publicGroup := e.Group("/v1/movies")
+	publicGroup.GET("/indicative-rating", movieHandler.GetAllIndicativeRating)
+
+	adminGroup := e.Group("/v1/admin/movies")
+	adminGroup.POST("", movieHandler.Create, middleware.EnsureAuthenticated(i))
+	adminGroup.GET("", movieHandler.GetAllByUserID, middleware.EnsureAuthenticated(i))
+	adminGroup.PUT("/:id", movieHandler.Update, middleware.EnsureAuthenticated(i))
+
 }

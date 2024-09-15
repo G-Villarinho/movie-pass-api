@@ -8,7 +8,7 @@ import (
 
 type ValidationErrors map[string]string
 
-var validationMessages = map[string]string{
+var ValidationMessages = ValidationErrors{
 	"required":        "This field is required",
 	"email":           "Invalid email format",
 	"min":             "Value is too short",
@@ -19,6 +19,7 @@ var validationMessages = map[string]string{
 	StrongPasswordTag: "Password must be at least 8 characters long, contain an uppercase letter, a number, and a special character",
 	NotTooOldTag:      "The date of birth indicates an age greater than the allowed maximum of 200 years",
 	NotFutureDateTag:  "The date of birth cannot be in the future",
+	General:           "At least one field must be provided for update.",
 }
 
 func ValidateStruct(s any) ValidationErrors {
@@ -44,7 +45,7 @@ func ValidateStruct(s any) ValidationErrors {
 }
 
 func getErrorMessage(err validator.FieldError) string {
-	if msg, exists := validationMessages[err.Tag()]; exists {
+	if msg, exists := ValidationMessages[err.Tag()]; exists {
 		return msg
 	}
 	return "Invalid value"

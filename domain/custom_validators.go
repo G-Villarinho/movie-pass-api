@@ -1,6 +1,9 @@
 package domain
 
 import (
+	"mime/multipart"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/dlclark/regexp2"
@@ -12,8 +15,18 @@ const (
 	StrongPasswordTag = "strongpassword"
 	NotTooOldTag      = "nottooold"
 	NotFutureDateTag  = "notfuturedate"
+	ValidateImagesTag = "validateImages"
+	General           = "general"
 	MaxAgeInYears     = 200
+	MaxImagesAllowed  = 5
+	MaxImageSize      = 5 * 1024 * 1024
 )
+
+var AllowedImagesExtensions = map[string]bool{
+	".png":  true,
+	".jpg":  true,
+	".jpeg": true,
+}
 
 func SetupCustomValidations(validator *validator.Validate) error {
 	if err := validator.RegisterValidation(StrongPasswordTag, strongPasswordValidator); err != nil {
@@ -25,6 +38,10 @@ func SetupCustomValidations(validator *validator.Validate) error {
 	}
 
 	if err := validator.RegisterValidation(NotFutureDateTag, notFutureDateValidator); err != nil {
+		return err
+	}
+
+	if err := validator.RegisterValidation(ValidateImagesTag, imageFileValidator); err != nil {
 		return err
 	}
 
@@ -58,6 +75,31 @@ func notFutureDateValidator(fl validator.FieldLevel) bool {
 
 	if birthDate.After(time.Now()) {
 		return false
+	}
+
+	return true
+}
+
+func imageFileValidator(fl validator.FieldLevel) bool {
+	images := fl.Field().Interface().([]*multipart.FileHeader)
+
+	if len(images) == 0 {
+		return true
+	}
+
+	if len(images) > MaxImagesAllowed {
+		return false
+	}
+
+	for _, file := range images {
+		ext := strings.ToLower(filepath.Ext(file.Filename))
+		if !AllowedImagesExtensions[ext] {
+			return false
+		}
+
+		if file.Size > MaxImageSize {
+			return false
+		}
 	}
 
 	return true

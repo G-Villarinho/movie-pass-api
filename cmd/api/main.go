@@ -6,7 +6,8 @@ import (
 	"log"
 	"time"
 
-	"github.com/GSVillas/movie-pass-api/api/handler"
+	"github.com/GSVillas/movie-pass-api/client"
+	"github.com/GSVillas/movie-pass-api/cmd/api/handler"
 	"github.com/GSVillas/movie-pass-api/config"
 	"github.com/GSVillas/movie-pass-api/config/database"
 	"github.com/GSVillas/movie-pass-api/repository"
@@ -24,6 +25,10 @@ func main() {
 
 	e := echo.New()
 	i := do.New()
+
+	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: `{"time":"${time_rfc3339_nano}","method":"${method}","uri":"${uri}","status":${status},"latency":"${latency_human}"}\n`,
+	}))
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{config.Env.FrontURL},
@@ -51,14 +56,19 @@ func main() {
 		return redisClient, nil
 	})
 
-	do.Provide(i, handler.NewUserHandler)
+	do.Provide(i, client.NewCloudFlareService)
+
 	do.Provide(i, handler.NewCinemaHandler)
+	do.Provide(i, handler.NewMovieHandler)
+	do.Provide(i, handler.NewUserHandler)
 
 	do.Provide(i, service.NewCinemaSevice)
+	do.Provide(i, service.NewMovieService)
 	do.Provide(i, service.NewUserService)
 	do.Provide(i, service.NewSessionService)
 
 	do.Provide(i, repository.NewCinemaRepository)
+	do.Provide(i, repository.NewMovieRepository)
 	do.Provide(i, repository.NewUserRepository)
 	do.Provide(i, repository.NewSessionRepository)
 

@@ -11,7 +11,7 @@ type CinemaSession struct {
 	CinemaRoomID uuid.UUID  `gorm:"column:cinemaRoomId;type:char(36);not null"`
 	CinemaRoom   CinemaRoom `gorm:"foreignKey:CinemaRoomID"`
 	MovieID      uuid.UUID  `gorm:"column:MovieId;type:char(36);not null"`
-	Movie        CinemaRoom `gorm:"foreignKey:MovieID"`
+	Movie        Movie      `gorm:"foreignKey:MovieID"`
 	UserID       uuid.UUID  `gorm:"column:userId;type:char(36);not null"`
 	User         User       `gorm:"foreignKey:UserID"`
 	StartTime    time.Time  `gorm:"column:startTime;type:time;not null"`

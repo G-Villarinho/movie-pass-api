@@ -56,17 +56,18 @@ func (c *cinemaRepository) GetByID(ctx context.Context, cinemaID uuid.UUID) (*do
 	return &cinema, nil
 }
 
-func (c *cinemaRepository) GetAll(ctx context.Context, userID uuid.UUID) ([]domain.Cinema, error) {
+func (c *cinemaRepository) GetAll(ctx context.Context, userID uuid.UUID, pagination *domain.Pagination) (*domain.Pagination, error) {
 	var cinemas []domain.Cinema
-	if err := c.db.Where("userId = ?", userID.String()).WithContext(ctx).Find(&cinemas).Error; err != nil {
+	if err := c.db.Scopes(paginate(cinemas, pagination, c.db)).Find(&cinemas).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
 
 		return nil, err
 	}
+	pagination.Rows = cinemas
 
-	return cinemas, nil
+	return pagination, nil
 }
 
 func (c *cinemaRepository) Delete(ctx context.Context, cinemaID uuid.UUID) error {

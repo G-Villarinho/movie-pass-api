@@ -42,11 +42,12 @@ func (Movie) TableName() string {
 }
 
 type MovieImage struct {
-	ID        uuid.UUID `gorm:"column:id;type:char(36);primaryKey"`
-	MovieID   uuid.UUID `gorm:"column:movieId;type:char(36);not null"`
-	ImageURL  string    `gorm:"column:imageUrl;type:varchar(255);not null"`
-	CreatedAt time.Time `gorm:"column:createdAt;not null"`
-	UpdatedAt time.Time `gorm:"column:updatedAt;default:NULL"`
+	ID           uuid.UUID `gorm:"column:id;type:char(36);primaryKey"`
+	MovieID      uuid.UUID `gorm:"column:movieId;type:char(36);not null"`
+	ImageURL     string    `gorm:"column:imageUrl;type:varchar(255);not null"`
+	CloudFlareID uuid.UUID `gorm:"column:cloudFlareId;type:char(36);not null;index"`
+	CreatedAt    time.Time `gorm:"column:createdAt;not null"`
+	UpdatedAt    time.Time `gorm:"column:updatedAt;default:NULL"`
 }
 
 func (MovieImage) TableName() string {

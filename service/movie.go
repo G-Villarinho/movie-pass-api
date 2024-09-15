@@ -105,15 +105,16 @@ func (m *movieService) Create(ctx context.Context, payload domain.MoviePayload) 
 
 func (m *movieService) ProcessUploadImageQueue(ctx context.Context, task domain.MovieImageUploadTask) error {
 	filename := fmt.Sprintf("movie_%s_image_%d.jpg", task.MovieID.String(), time.Now().Unix())
-	imageURL, err := m.cloudFlareService.UploadImage(task.Image, filename)
+	response, err := m.cloudFlareService.UploadImage(task.Image, filename)
 	if err != nil {
 		return fmt.Errorf("error to upload image to Cloudflare %w", err)
 	}
 
 	movieImage := domain.MovieImage{
-		ID:       uuid.New(),
-		MovieID:  task.MovieID,
-		ImageURL: imageURL,
+		ID:           uuid.New(),
+		MovieID:      task.MovieID,
+		ImageURL:     response.URL,
+		CloudFlareID: response.ID,
 	}
 
 	if err := m.movieRepository.CreateMovieImage(ctx, movieImage); err != nil {

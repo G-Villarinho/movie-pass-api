@@ -2,32 +2,19 @@ package client
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
-	"log/slog"
 	"mime/multipart"
 	"net/http"
 
 	"github.com/GSVillas/movie-pass-api/config"
+	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/samber/do"
 )
 
-var (
-	ErrCreateFormFile   = errors.New("failed to create form file")
-	ErrCopyFile         = errors.New("failed to copy file to buffer")
-	ErrCloseWriter      = errors.New("failed to close writer")
-	ErrCreateRequest    = errors.New("failed to create request")
-	ErrSendRequest      = errors.New("failed to send request")
-	ErrReadResponse     = errors.New("failed to read API response")
-	ErrDecodeJSON       = errors.New("failed to decode JSON response")
-	ErrUploadFailed     = errors.New("upload failed with status code")
-	ErrCloudflareFailed = errors.New("cloudflare response error")
-)
-
 type CloudFlareService interface {
-	UploadImage(imageBytes []byte, filename string) (string, error)
+	UploadImage(imageBytes []byte, filename string) (*UploadImageResponse, error)
 	DeleteImage(imageID string) error
 }
 
@@ -35,11 +22,11 @@ type cloudFlareService struct {
 	i *do.Injector
 }
 
-type CloudflareError struct {
+type cloudflareError struct {
 	Message string `json:"message"`
 }
 
-type CloudflareResult struct {
+type cloudflareResult struct {
 	Variants          []string `json:"variants"`
 	ID                string   `json:"id"`
 	Filename          string   `json:"filename"`
@@ -47,11 +34,16 @@ type CloudflareResult struct {
 	RequireSignedURLs bool     `json:"requireSignedURLs"`
 }
 
-type CloudflareResponse struct {
+type cloudflareResponse struct {
 	Messages []string          `json:"messages"`
 	Success  bool              `json:"success"`
-	Result   CloudflareResult  `json:"result"`
-	Errors   []CloudflareError `json:"errors"`
+	Result   cloudflareResult  `json:"result"`
+	Errors   []cloudflareError `json:"errors"`
+}
+
+type UploadImageResponse struct {
+	ID  uuid.UUID
+	URL string
 }
 
 func NewCloudFlareService(i *do.Injector) (CloudFlareService, error) {
@@ -60,37 +52,26 @@ func NewCloudFlareService(i *do.Injector) (CloudFlareService, error) {
 	}, nil
 }
 
-func (c *cloudFlareService) UploadImage(imageBytes []byte, filename string) (string, error) {
-	log := slog.With(
-		slog.String("client", "cloudFlare"),
-		slog.String("func", "UploadImage"),
-	)
-
-	log.Info("Initializing image upload process")
-
+func (c *cloudFlareService) UploadImage(imageBytes []byte, filename string) (*UploadImageResponse, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
 	part, err := writer.CreateFormFile("file", filename)
 	if err != nil {
-		log.Error("Failed to create form file", slog.String("error", err.Error()))
-		return "", ErrCreateFormFile
+		return nil, fmt.Errorf("error creating form file: %w", err)
 	}
 
 	if _, err := io.Copy(part, bytes.NewReader(imageBytes)); err != nil {
-		log.Error("Failed to copy file to buffer", slog.String("error", err.Error()))
-		return "", ErrCopyFile
+		return nil, fmt.Errorf("error copying file to buffer: %w", err)
 	}
 
 	if err := writer.Close(); err != nil {
-		log.Error("Failed to close writer", slog.String("error", err.Error()))
-		return "", ErrCloseWriter
+		return nil, fmt.Errorf("error closing writer: %w", err)
 	}
 
 	req, err := http.NewRequest("POST", config.Env.CloudFlareAccountAPI, body)
 	if err != nil {
-		log.Error("Failed to create request", slog.String("error", err.Error()))
-		return "", ErrCreateRequest
+		return nil, fmt.Errorf("error creating request: %w", err)
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Env.CloudFlareApiKey))
@@ -99,54 +80,48 @@ func (c *cloudFlareService) UploadImage(imageBytes []byte, filename string) (str
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error("Failed to send request", slog.String("error", err.Error()))
-		return "", ErrSendRequest
+		return nil, fmt.Errorf("error sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
-		log.Error("Failed to read API response", slog.String("error", err.Error()))
-		return "", ErrReadResponse
+		return nil, fmt.Errorf("error reading API response: %w", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error("Upload failed", slog.Int("status", resp.StatusCode))
-		return "", ErrUploadFailed
+		return nil, fmt.Errorf("upload error with status code: %d", resp.StatusCode)
 	}
 
-	var cloudflareResp CloudflareResponse
+	var cloudflareResp cloudflareResponse
 	if err := jsoniter.Unmarshal(respBody, &cloudflareResp); err != nil {
-		log.Error("Failed to decode JSON response", slog.String("error", err.Error()))
-		return "", ErrDecodeJSON
+		return nil, fmt.Errorf("error decoding JSON response: %w", err)
 	}
 
 	if !cloudflareResp.Success {
-		log.Error("Cloudflare response error", slog.String("error", ErrCloudflareFailed.Error()), slog.Any("details", cloudflareResp.Errors))
-		return "", ErrCloudflareFailed
+		return nil, fmt.Errorf("cloudflare response error: %+v", cloudflareResp.Errors)
 	}
 
 	imageURL := cloudflareResp.Result.Variants[0]
+	imageID := cloudflareResp.Result.ID
 
-	log.Info("Image upload successful", slog.String("imageURL", imageURL))
-	return imageURL, nil
+	ID, err := uuid.Parse(imageID)
+	if err != nil {
+		return nil, fmt.Errorf("error to convert imageId to uuid struct: %w", err)
+	}
+
+	return &UploadImageResponse{
+		ID:  ID,
+		URL: imageURL,
+	}, nil
 }
 
 func (c *cloudFlareService) DeleteImage(imageID string) error {
-	log := slog.With(
-		slog.String("client", "cloudFlare"),
-		slog.String("func", "DeleteImage"),
-		slog.String("imageID", imageID),
-	)
-
-	log.Info("Initializing image deletion process")
-
 	deleteURL := fmt.Sprintf("%s/%s", config.Env.CloudFlareAccountAPI, imageID)
 
 	req, err := http.NewRequest("DELETE", deleteURL, nil)
 	if err != nil {
-		log.Error("Failed to create request", slog.String("error", err.Error()))
-		return ErrCreateRequest
+		return fmt.Errorf("error creating request: %w", err)
 	}
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", config.Env.CloudFlareApiKey))
@@ -154,16 +129,13 @@ func (c *cloudFlareService) DeleteImage(imageID string) error {
 	client := &http.Client{}
 	resp, err := client.Do(req)
 	if err != nil {
-		log.Error("Failed to send request", slog.String("error", err.Error()))
-		return ErrSendRequest
+		return fmt.Errorf("error sending request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		log.Error("Failed to delete image", slog.Int("status", resp.StatusCode))
-		return ErrUploadFailed
+		return fmt.Errorf("error deleting image with status code: %d", resp.StatusCode)
 	}
 
-	log.Info("Image deleted successfully")
 	return nil
 }

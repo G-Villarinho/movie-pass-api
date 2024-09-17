@@ -53,27 +53,29 @@ func (c *cinemaService) GetByID(ctx context.Context, cinemaID uuid.UUID) (*domai
 	return cinema.ToCinemaResponse(), nil
 }
 
-func (c *cinemaService) GetAll(ctx context.Context) ([]domain.CinemaResponse, error) {
+func (c *cinemaService) GetAll(ctx context.Context, pagination *domain.Pagination) (*domain.Pagination, error) {
 	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
 	if !ok || session == nil {
 		return nil, domain.ErrUserNotFoundInContext
 	}
 
-	cinemas, err := c.cinemaRepository.GetAll(ctx, session.UserID)
+	cinemasPagination, err := c.cinemaRepository.GetAll(ctx, session.UserID, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("error to fetch cinemas for user ID %s: %w", session.UserID, err)
 	}
 
-	if cinemas == nil {
+	if cinemasPagination.Rows == nil {
 		return nil, domain.ErrCinemaNotFound
 	}
 
 	var cinemasResponse []domain.CinemaResponse
-	for _, cinema := range cinemas {
+	for _, cinema := range cinemasPagination.Rows.([]domain.Cinema) {
 		cinemasResponse = append(cinemasResponse, *cinema.ToCinemaResponse())
 	}
 
-	return cinemasResponse, nil
+	cinemasPagination.Rows = cinemasResponse
+
+	return cinemasPagination, nil
 }
 
 func (c *cinemaService) Delete(ctx context.Context, cinemaID uuid.UUID) error {

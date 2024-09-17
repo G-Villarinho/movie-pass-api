@@ -112,7 +112,16 @@ func (c *cinemaHandler) GetAll(ctx echo.Context) error {
 		slog.String("func", "GetAll"),
 	)
 
-	response, err := c.cinemaService.GetAll(ctx.Request().Context())
+	limit := ctx.QueryParam("limit")
+	page := ctx.QueryParam("page")
+	sort := ctx.QueryParam("sort")
+
+	pagination := &domain.Pagination{}
+	pagination.SetLimit(limit)
+	pagination.SetPage(page)
+	pagination.SetSort(sort)
+
+	response, err := c.cinemaService.GetAll(ctx.Request().Context(), pagination)
 	if err != nil {
 		if errors.Is(err, domain.ErrCinemaNotFound) {
 			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusNotFound, nil, "No Cinemas Found", "There are currently no cinemas available in the system. Please try again later or contact support if you believe this is a mistake.")

@@ -109,7 +109,7 @@ type MovieImageResponse struct {
 }
 
 type MovieHandler interface {
-	GetAllIndicativeRating(ctx echo.Context) error
+	GetAllIndicativeRatings(ctx echo.Context) error
 	Create(ctx echo.Context) error
 	GetAllByUserID(ctx echo.Context) error
 	Update(ctx echo.Context) error
@@ -117,21 +117,22 @@ type MovieHandler interface {
 }
 
 type MovieService interface {
-	GetAllIndicativeRating(ctx context.Context) ([]*IndicativeRatingResponse, error)
+	GetAllIndicativeRatings(ctx context.Context) ([]*IndicativeRatingResponse, error)
 	Create(ctx context.Context, payload MoviePayload) (*MovieResponse, error)
-	ProcessUploadImageQueue(ctx context.Context, task MovieImageUploadTask) error
+	ProcessUploadQueue(ctx context.Context, task MovieImageUploadTask) error
 	GetAllByUserID(ctx context.Context) ([]*MovieResponse, error)
 	Update(ctx context.Context, movieID uuid.UUID, payload MovieUpdatePayload) (*MovieResponse, error)
 	Delete(ctx context.Context, movieID uuid.UUID) error
-	ProcessDeleteImageQueue(ctx context.Context, task MovieImageDeleteTask) error
+	ProcessDeleteQueue(ctx context.Context, task MovieImageDeleteTask) error
 }
 
 type MovieRepository interface {
 	GetAllIndicativeRating(ctx context.Context) ([]*IndicativeRating, error)
+	GetIndicativeRatingByID(ctx context.Context, id uuid.UUID) (*IndicativeRating, error)
 	Create(ctx context.Context, movie Movie) error
 	CreateMovieImage(ctx context.Context, movieImage MovieImage) error
-	AddUploadImageTaskToQueue(ctx context.Context, task MovieImageUploadTask) error
-	GetNextUploadImageTaskFromQueue(ctx context.Context) (*MovieImageUploadTask, error)
+	AddUploadTaskToQueue(ctx context.Context, task MovieImageUploadTask) error
+	GetNextUploadTask(ctx context.Context) (*MovieImageUploadTask, error)
 	GetALlByUserID(ctx context.Context, userID uuid.UUID) ([]*Movie, error)
 	Update(ctx context.Context, movieID uuid.UUID, updates map[string]any) error
 	GetByID(ctx context.Context, movieID uuid.UUID, withPreload bool) (*Movie, error)

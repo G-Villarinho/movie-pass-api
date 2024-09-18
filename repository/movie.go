@@ -51,6 +51,19 @@ func (m *MovieRepository) GetAllIndicativeRating(ctx context.Context) ([]*domain
 	return indicativeRating, nil
 }
 
+func (m *MovieRepository) GetIndicativeRatingByID(ctx context.Context, id uuid.UUID) (*domain.IndicativeRating, error) {
+	var indicativeRating domain.IndicativeRating
+
+	if err := m.db.WithContext(ctx).First(&indicativeRating, "id = ?", id).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &indicativeRating, nil
+}
+
 func (m *MovieRepository) Create(ctx context.Context, movie domain.Movie) error {
 	if err := m.db.WithContext(ctx).Create(&movie).Error; err != nil {
 		return err
@@ -67,7 +80,7 @@ func (m *MovieRepository) CreateMovieImage(ctx context.Context, movieImage domai
 	return nil
 }
 
-func (m *MovieRepository) AddUploadImageTaskToQueue(ctx context.Context, task domain.MovieImageUploadTask) error {
+func (m *MovieRepository) AddUploadTaskToQueue(ctx context.Context, task domain.MovieImageUploadTask) error {
 	data, err := jsoniter.Marshal(task)
 	if err != nil {
 		return fmt.Errorf("error to serialize task for Redis. Error: %w", err)
@@ -80,7 +93,7 @@ func (m *MovieRepository) AddUploadImageTaskToQueue(ctx context.Context, task do
 	return nil
 }
 
-func (m *MovieRepository) GetNextUploadImageTaskFromQueue(ctx context.Context) (*domain.MovieImageUploadTask, error) {
+func (m *MovieRepository) GetNextUploadTask(ctx context.Context) (*domain.MovieImageUploadTask, error) {
 	data, err := m.redisClient.LPop(ctx, m.getImageUploadKey()).Result()
 	if err != nil {
 		if err == redis.Nil {
@@ -111,15 +124,15 @@ func (m *MovieRepository) GetALlByUserID(ctx context.Context, userID uuid.UUID) 
 	return movies, nil
 }
 
-func (m *MovieRepository) Update(ctx context.Context, movieID uuid.UUID, updates map[string]any) error {
-	if err := m.db.Model(&domain.Movie{}).Where("id = ?", movieID).Updates(updates).Error; err != nil {
+func (m *MovieRepository) Update(ctx context.Context, ID uuid.UUID, updates map[string]any) error {
+	if err := m.db.Model(&domain.Movie{}).Where("id = ?", ID).Updates(updates).Error; err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (m *MovieRepository) GetByID(ctx context.Context, movieID uuid.UUID, withPreload bool) (*domain.Movie, error) {
+func (m *MovieRepository) GetByID(ctx context.Context, ID uuid.UUID, withPreload bool) (*domain.Movie, error) {
 	var movie domain.Movie
 	db := m.db.WithContext(ctx)
 
@@ -127,7 +140,7 @@ func (m *MovieRepository) GetByID(ctx context.Context, movieID uuid.UUID, withPr
 		db = db.Preload("Images").Preload("IndicativeRating")
 	}
 
-	if err := db.First(&movie, "id = ?", movieID).Error; err != nil {
+	if err := db.First(&movie, "id = ?", ID).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}

@@ -37,7 +37,7 @@ func NewMovieService(i *do.Injector) (domain.MovieService, error) {
 	}, nil
 }
 
-func (m *movieService) GetAllIndicativeRating(ctx context.Context) ([]*domain.IndicativeRatingResponse, error) {
+func (m *movieService) GetAllIndicativeRatings(ctx context.Context) ([]*domain.IndicativeRatingResponse, error) {
 	indicativeRatings, err := m.movieRepository.GetAllIndicativeRating(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("error to get all indicative ratings %w", err)
@@ -66,6 +66,15 @@ func (m *movieService) Create(ctx context.Context, payload domain.MoviePayload) 
 		return nil, domain.ErrUserNotFoundInContext
 	}
 
+	indicativeRating, err := m.movieRepository.GetIndicativeRatingByID(ctx, payload.IndicativeRatingID)
+	if err != nil {
+		return nil, fmt.Errorf("error to get indicative rating by id %w", err)
+	}
+
+	if indicativeRating == nil {
+		return nil, domain.ErrIndicativeRatingNotFound
+	}
+
 	movie := payload.ToMovie(session.UserID)
 
 	if err := m.movieRepository.Create(ctx, *movie); err != nil {
@@ -85,15 +94,19 @@ func (m *movieService) Create(ctx context.Context, payload domain.MoviePayload) 
 			UserID:  session.UserID,
 		}
 
-		if err := m.movieRepository.AddUploadImageTaskToQueue(ctx, task); err != nil {
+		if err := m.movieRepository.AddUploadTaskToQueue(ctx, task); err != nil {
 			log.Error(err.Error())
 		}
 	}
 
-	return movie.ToMovieResponse(), nil
+	indicativeRatingResponse := indicativeRating.ToIndicativeRatingResponse()
+	movieResponse := movie.ToMovieResponse()
+	movieResponse.IndicativeRating = indicativeRatingResponse
+
+	return movieResponse, nil
 }
 
-func (m *movieService) ProcessUploadImageQueue(ctx context.Context, task domain.MovieImageUploadTask) error {
+func (m *movieService) ProcessUploadQueue(ctx context.Context, task domain.MovieImageUploadTask) error {
 	filename := fmt.Sprintf("movie_%s_image_%d.jpg", task.MovieID.String(), time.Now().Unix())
 	response, err := m.cloudFlareService.UploadImage(task.Image, filename)
 	if err != nil {
@@ -225,6 +238,6 @@ func (m *movieService) Delete(ctx context.Context, movieID uuid.UUID) error {
 	return nil
 }
 
-func (m *movieService) ProcessDeleteImageQueue(ctx context.Context, task domain.MovieImageDeleteTask) error {
+func (m *movieService) ProcessDeleteQueue(ctx context.Context, task domain.MovieImageDeleteTask) error {
 	panic("unimplemented")
 }

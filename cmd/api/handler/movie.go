@@ -30,13 +30,13 @@ func NewMovieHandler(i *do.Injector) (domain.MovieHandler, error) {
 	}, nil
 }
 
-func (m *movieHandler) GetAllIndicativeRating(ctx echo.Context) error {
+func (m *movieHandler) GetAllIndicativeRatings(ctx echo.Context) error {
 	log := slog.With(
 		slog.String("handler", "movie"),
 		slog.String("func", "GetAllIndicativeRating"),
 	)
 
-	response, err := m.movieService.GetAllIndicativeRating(ctx.Request().Context())
+	response, err := m.movieService.GetAllIndicativeRatings(ctx.Request().Context())
 	if err != nil {
 		if errors.Is(err, domain.ErrIndicativeRatingsNotFound) {
 			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusNotFound, nil, "No indicative rating available Found", "There are currently no indicative rating available in the system. Please try again later or contact support if you believe this is a mistake.")
@@ -84,8 +84,15 @@ func (m *movieHandler) Create(ctx echo.Context) error {
 
 	response, err := m.movieService.Create(ctx.Request().Context(), payload)
 	if err != nil {
-		log.Error(err.Error())
-		return domain.InternalServerAPIErrorResponse(ctx)
+		switch err {
+		case domain.ErrUserNotFoundInContext:
+			return domain.AccessDeniedAPIErrorResponse(ctx)
+		case domain.ErrIndicativeRatingNotFound:
+			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusNotFound, nil, "Indicative Rating Not Found", "The specified indicative rating does not exist.")
+		default:
+			log.Error(err.Error())
+			return domain.InternalServerAPIErrorResponse(ctx)
+		}
 	}
 
 	return ctx.JSON(http.StatusCreated, response)

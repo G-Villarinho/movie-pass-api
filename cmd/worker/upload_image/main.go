@@ -57,7 +57,7 @@ func main() {
 	}
 
 	for {
-		task, err := movieRepository.GetNextUploadImageTaskFromQueue(context.Background())
+		task, err := movieRepository.GetNextUploadTask(context.Background())
 		if err != nil {
 			slog.Error(err.Error())
 			continue
@@ -68,7 +68,7 @@ func main() {
 		}
 
 		slog.Info("start upload image in cloud")
-		if err := movieService.ProcessUploadImageQueue(context.Background(), *task); err != nil {
+		if err := movieService.ProcessUploadQueue(context.Background(), *task); err != nil {
 			slog.Error(err.Error())
 			continue
 		}

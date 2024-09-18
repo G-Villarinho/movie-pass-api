@@ -18,7 +18,7 @@ const (
 	ValidateImagesTag = "validateImages"
 	General           = "general"
 	MaxAgeInYears     = 200
-	MaxImagesAllowed  = 5
+	MaxImagesAllowed  = 3
 	MaxImageSize      = 5 * 1024 * 1024
 )
 

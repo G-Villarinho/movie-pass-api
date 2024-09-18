@@ -38,21 +38,12 @@ func NewMovieService(i *do.Injector) (domain.MovieService, error) {
 }
 
 func (m *movieService) GetAllIndicativeRating(ctx context.Context) ([]*domain.IndicativeRatingResponse, error) {
-	log := slog.With(
-		slog.String("service", "movie"),
-		slog.String("func", "GetAllIndicativeRating"),
-	)
-
-	log.Info("Initializing get all indicative rating process")
-
 	indicativeRatings, err := m.movieRepository.GetAllIndicativeRating(ctx)
 	if err != nil {
-		log.Error("Failed to get all indicative rating", slog.String("error", err.Error()))
-		return nil, domain.ErrGetAllIndicativeRating
+		return nil, fmt.Errorf("error to get all indicative ratings %w", err)
 	}
 
 	if indicativeRatings == nil {
-		log.Warn("indicative ratings not found")
 		return nil, domain.ErrIndicativeRatingsNotFound
 	}
 
@@ -61,7 +52,6 @@ func (m *movieService) GetAllIndicativeRating(ctx context.Context) ([]*domain.In
 		indicativeRatingsResponse = append(indicativeRatingsResponse, indicativeRattings.ToIndicativeRatingResponse())
 	}
 
-	log.Info("Get all indicative rating process executed succefully")
 	return indicativeRatingsResponse, nil
 }
 

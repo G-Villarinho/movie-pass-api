@@ -53,14 +53,14 @@ type CinemaHandler interface {
 type CinemaService interface {
 	Create(ctx context.Context, payload CinemaPayload) (*CinemaResponse, error)
 	GetByID(ctx context.Context, cinemaID uuid.UUID) (*CinemaResponse, error)
-	GetAll(ctx context.Context) ([]CinemaResponse, error)
+	GetAll(ctx context.Context, pagination *Pagination) (*Pagination, error)
 	Delete(ctx context.Context, cinemaID uuid.UUID) error
 }
 
 type CinemaRepository interface {
 	Create(ctx context.Context, cinema Cinema) error
 	GetByID(ctx context.Context, cinemaID uuid.UUID) (*Cinema, error)
-	GetAll(ctx context.Context, userID uuid.UUID) ([]Cinema, error)
+	GetAll(ctx context.Context, userID uuid.UUID, pagination *Pagination) (*Pagination, error)
 	Delete(ctx context.Context, cinemaID uuid.UUID) error
 }
 

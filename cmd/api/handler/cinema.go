@@ -87,7 +87,7 @@ func (c *cinemaHandler) Delete(ctx echo.Context) error {
 		slog.String("func", "Delete"),
 	)
 
-	param := ctx.Param("cinemaId")
+	param := ctx.Param("id")
 	cinemaID, err := uuid.Parse(param)
 	if err != nil {
 		log.Warn("Invalid cinema ID provided", slog.String("cinemaId", param), slog.String("error", err.Error()))

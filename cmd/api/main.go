@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/GSVillas/movie-pass-api/client"
@@ -27,7 +28,12 @@ func main() {
 	i := do.New()
 
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: `{"time":"${time_rfc3339_nano}","method":"${method}","uri":"${uri}","status":${status},"latency":"${latency_human}"}\n`,
+		Format: `{"time":"${time_rfc3339_nano}","method":"${method}","uri":"${uri}","status":${status},"latency":"${latency_human}"}`,
+		Output: os.Stdout,
+	}))
+
+	e.Use(middleware.BodyDump(func(c echo.Context, reqBody, resBody []byte) {
+		fmt.Printf("\n")
 	}))
 
 	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{

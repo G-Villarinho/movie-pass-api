@@ -127,27 +127,29 @@ func (m *movieService) ProcessUploadQueue(ctx context.Context, task domain.Movie
 	return nil
 }
 
-func (m *movieService) GetAllByUserID(ctx context.Context) ([]*domain.MovieResponse, error) {
+func (m *movieService) GetAllByUserID(ctx context.Context, pagination *domain.Pagination) (*domain.Pagination, error) {
 	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
 	if !ok || session == nil {
 		return nil, domain.ErrUserNotFoundInContext
 	}
 
-	movies, err := m.movieRepository.GetALlByUserID(ctx, session.UserID)
+	moviesPagination, err := m.movieRepository.GetALlByUserID(ctx, session.UserID, pagination)
 	if err != nil {
 		return nil, fmt.Errorf("error to get all movies by user id. error: %w", err)
 	}
 
-	if movies == nil {
+	if moviesPagination == nil {
 		return nil, domain.ErrMoviesNotFoundByUserID
 	}
 
 	var moviesResponse []*domain.MovieResponse
-	for _, movie := range movies {
+	for _, movie := range moviesPagination.Rows.([]*domain.Movie) {
 		moviesResponse = append(moviesResponse, movie.ToMovieResponse())
 	}
 
-	return moviesResponse, nil
+	moviesPagination.Rows = moviesResponse
+
+	return moviesPagination, nil
 }
 
 func (m *movieService) Update(ctx context.Context, movieID uuid.UUID, payload domain.MovieUpdatePayload) (*domain.MovieResponse, error) {

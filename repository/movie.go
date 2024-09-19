@@ -111,17 +111,29 @@ func (m *MovieRepository) GetNextUploadTask(ctx context.Context) (*domain.MovieI
 	return &task, nil
 }
 
-func (m *MovieRepository) GetALlByUserID(ctx context.Context, userID uuid.UUID) ([]*domain.Movie, error) {
+func (m *MovieRepository) GetALlByUserID(ctx context.Context, userID uuid.UUID, pagination *domain.Pagination) (*domain.Pagination, error) {
 	var movies []*domain.Movie
-	if err := m.db.WithContext(ctx).Where("userId = ?", userID.String()).Preload("Images").Preload("IndicativeRating").Find(&movies).Error; err != nil {
+	if err := m.db.WithContext(ctx).
+		Where("userId = ?", userID.String()).
+		Scopes(paginate(&movies, pagination, m.db)).
+		Preload("Images").
+		Preload("IndicativeRating").
+		Find(&movies).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}
-
 		return nil, err
 	}
 
-	return movies, nil
+	for _, movie := range movies {
+		if len(movie.Images) > 0 {
+			movie.Images = movie.Images[:1]
+		}
+	}
+
+	pagination.Rows = movies
+
+	return pagination, nil
 }
 
 func (m *MovieRepository) Update(ctx context.Context, ID uuid.UUID, updates map[string]any) error {

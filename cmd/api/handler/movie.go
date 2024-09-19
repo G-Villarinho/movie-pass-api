@@ -104,7 +104,16 @@ func (m *movieHandler) GetAllByUserID(ctx echo.Context) error {
 		slog.String("func", "GetAllByUserID"),
 	)
 
-	response, err := m.movieService.GetAllByUserID(ctx.Request().Context())
+	limit := ctx.QueryParam("limit")
+	page := ctx.QueryParam("page")
+	sort := ctx.QueryParam("sort")
+
+	pagination := &domain.Pagination{}
+	pagination.SetLimit(limit)
+	pagination.SetPage(page)
+	pagination.SetSort(sort)
+
+	response, err := m.movieService.GetAllByUserID(ctx.Request().Context(), pagination)
 	if err != nil {
 		if errors.Is(err, domain.ErrMoviesNotFoundByUserID) {
 			return domain.NewCustomValidationAPIErrorResponse(ctx, http.StatusNotFound, nil, "Movies Not Found", "No movies were found for the current user. If you believe this is a mistake, please contact support.")

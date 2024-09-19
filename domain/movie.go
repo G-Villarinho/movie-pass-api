@@ -120,7 +120,7 @@ type MovieService interface {
 	GetAllIndicativeRatings(ctx context.Context) ([]*IndicativeRatingResponse, error)
 	Create(ctx context.Context, payload MoviePayload) (*MovieResponse, error)
 	ProcessUploadQueue(ctx context.Context, task MovieImageUploadTask) error
-	GetAllByUserID(ctx context.Context) ([]*MovieResponse, error)
+	GetAllByUserID(ctx context.Context, pagination *Pagination) (*Pagination, error)
 	Update(ctx context.Context, movieID uuid.UUID, payload MovieUpdatePayload) (*MovieResponse, error)
 	Delete(ctx context.Context, movieID uuid.UUID) error
 	ProcessDeleteQueue(ctx context.Context, task MovieImageDeleteTask) error
@@ -133,7 +133,7 @@ type MovieRepository interface {
 	CreateMovieImage(ctx context.Context, movieImage MovieImage) error
 	AddUploadTaskToQueue(ctx context.Context, task MovieImageUploadTask) error
 	GetNextUploadTask(ctx context.Context) (*MovieImageUploadTask, error)
-	GetALlByUserID(ctx context.Context, userID uuid.UUID) ([]*Movie, error)
+	GetALlByUserID(ctx context.Context, userID uuid.UUID, pagination *Pagination) (*Pagination, error)
 	Update(ctx context.Context, movieID uuid.UUID, updates map[string]any) error
 	GetByID(ctx context.Context, movieID uuid.UUID, withPreload bool) (*Movie, error)
 }

@@ -58,7 +58,7 @@ func (c *cinemaRepository) GetByID(ctx context.Context, cinemaID uuid.UUID) (*do
 
 func (c *cinemaRepository) GetAll(ctx context.Context, userID uuid.UUID, pagination *domain.Pagination) (*domain.Pagination, error) {
 	var cinemas []domain.Cinema
-	if err := c.db.Scopes(paginate(cinemas, pagination, c.db)).Find(&cinemas).Error; err != nil {
+	if err := c.db.WithContext(ctx).Scopes(paginate(cinemas, pagination, c.db)).Find(&cinemas).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}

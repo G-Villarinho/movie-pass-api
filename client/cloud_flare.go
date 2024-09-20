@@ -15,7 +15,7 @@ import (
 
 type CloudFlareService interface {
 	UploadImage(imageBytes []byte, filename string) (*UploadImageResponse, error)
-	DeleteImage(imageID string) error
+	DeleteImage(cloudFlareID uuid.UUID) error
 }
 
 type cloudFlareService struct {
@@ -116,8 +116,8 @@ func (c *cloudFlareService) UploadImage(imageBytes []byte, filename string) (*Up
 	}, nil
 }
 
-func (c *cloudFlareService) DeleteImage(imageID string) error {
-	deleteURL := fmt.Sprintf("%s/%s", config.Env.CloudFlareAccountAPI, imageID)
+func (c *cloudFlareService) DeleteImage(cloudFlareID uuid.UUID) error {
+	deleteURL := fmt.Sprintf("%s/%s", config.Env.CloudFlareAccountAPI, cloudFlareID.String())
 
 	req, err := http.NewRequest("DELETE", deleteURL, nil)
 	if err != nil {

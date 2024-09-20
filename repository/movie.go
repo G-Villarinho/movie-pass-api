@@ -136,8 +136,8 @@ func (m *MovieRepository) GetALlByUserID(ctx context.Context, userID uuid.UUID, 
 	return pagination, nil
 }
 
-func (m *MovieRepository) Update(ctx context.Context, ID uuid.UUID, updates map[string]any) error {
-	if err := m.db.Model(&domain.Movie{}).Where("id = ?", ID).Updates(updates).Error; err != nil {
+func (m *MovieRepository) Update(ctx context.Context, movie domain.Movie) error {
+	if err := m.db.Save(movie).Error; err != nil {
 		return err
 	}
 
@@ -162,6 +162,49 @@ func (m *MovieRepository) GetByID(ctx context.Context, ID uuid.UUID, withPreload
 	return &movie, nil
 }
 
+func (m *MovieRepository) DeleteMovieImage(ctx context.Context, cloudFlareID uuid.UUID) error {
+	if err := m.db.WithContext(ctx).Where("cloudFlareId = ?", cloudFlareID).Delete(&domain.MovieImage{}).Error; err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (m *MovieRepository) AddDeleteTaskToQueue(ctx context.Context, task domain.MovieImageDeleteTask) error {
+	data, err := jsoniter.Marshal(task)
+	if err != nil {
+		return fmt.Errorf("error to serialize task for Redis. Error: %w", err)
+	}
+
+	if err := m.redisClient.RPush(ctx, m.getImageDeleteKey(), data).Err(); err != nil {
+		return fmt.Errorf("error to add task to Redis queue. Error: %w", err)
+	}
+
+	return nil
+}
+
+func (m *MovieRepository) GetNextDeleteTask(ctx context.Context) (*domain.MovieImageDeleteTask, error) {
+	data, err := m.redisClient.LPop(ctx, m.getImageDeleteKey()).Result()
+	if err != nil {
+		if err == redis.Nil {
+			return nil, nil
+		}
+
+		return nil, err
+	}
+
+	var task domain.MovieImageDeleteTask
+	if err := jsoniter.Unmarshal([]byte(data), &task); err != nil {
+		return nil, fmt.Errorf("error to deserialize task from Redis. error:%w", err)
+	}
+
+	return &task, nil
+}
+
 func (m *MovieRepository) getImageUploadKey() string {
 	return "image_upload_queue"
+}
+
+func (m *MovieRepository) getImageDeleteKey() string {
+	return "image_delete_queue"
 }

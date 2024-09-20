@@ -106,27 +106,6 @@ func (m *movieService) Create(ctx context.Context, payload domain.MoviePayload) 
 	return movieResponse, nil
 }
 
-func (m *movieService) ProcessUploadQueue(ctx context.Context, task domain.MovieImageUploadTask) error {
-	filename := fmt.Sprintf("movie_%s_image_%d.jpg", task.MovieID.String(), time.Now().Unix())
-	response, err := m.cloudFlareService.UploadImage(task.Image, filename)
-	if err != nil {
-		return fmt.Errorf("error to upload image to Cloudflare %w", err)
-	}
-
-	movieImage := domain.MovieImage{
-		ID:           uuid.New(),
-		MovieID:      task.MovieID,
-		ImageURL:     response.URL,
-		CloudFlareID: response.ID,
-	}
-
-	if err := m.movieRepository.CreateMovieImage(ctx, movieImage); err != nil {
-		return fmt.Errorf("error to save movie image to the database error:%w", err)
-	}
-
-	return nil
-}
-
 func (m *movieService) GetAllByUserID(ctx context.Context, pagination *domain.Pagination) (*domain.Pagination, error) {
 	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
 	if !ok || session == nil {
@@ -152,15 +131,15 @@ func (m *movieService) GetAllByUserID(ctx context.Context, pagination *domain.Pa
 	return moviesPagination, nil
 }
 
-func (m *movieService) Update(ctx context.Context, movieID uuid.UUID, payload domain.MovieUpdatePayload) (*domain.MovieResponse, error) {
+func (m *movieService) Update(ctx context.Context, ID uuid.UUID, payload domain.MovieUpdatePayload) (*domain.MovieResponse, error) {
 	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
 	if !ok || session == nil {
 		return nil, domain.ErrUserNotFoundInContext
 	}
 
-	movie, err := m.movieRepository.GetByID(ctx, movieID, true)
+	movie, err := m.movieRepository.GetByID(ctx, ID, true)
 	if err != nil {
-		return nil, fmt.Errorf("error to get all movies by id. Error: %w", err)
+		return nil, fmt.Errorf("error to get movie by id: %w", err)
 	}
 
 	if movie == nil {
@@ -171,62 +150,47 @@ func (m *movieService) Update(ctx context.Context, movieID uuid.UUID, payload do
 		return nil, domain.ErrMovieNotBelongUser
 	}
 
-	indicativeRatings, err := m.movieRepository.GetAllIndicativeRating(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("err to get all indicative rating: Error: %w", err)
-	}
-
-	if indicativeRatings == nil {
-		return nil, domain.ErrIndicativeRatingsNotFound
-	}
-
-	var indicativeRating domain.IndicativeRating
 	if payload.IndicativeRatingID != nil {
-		exists := false
-		for _, rating := range indicativeRatings {
-			if rating.ID == *payload.IndicativeRatingID {
-				indicativeRating = *rating
-				exists = true
-				break
-			}
+		indicativeRating, err := m.movieRepository.GetIndicativeRatingByID(ctx, *payload.IndicativeRatingID)
+		if err != nil {
+			return nil, fmt.Errorf("error to get indicative rating: %w", err)
 		}
-		if !exists {
+
+		if indicativeRating == nil {
 			return nil, domain.ErrIndicativeRatingNotFound
 		}
-	}
-
-	updates := map[string]any{}
-	if payload.IndicativeRatingID != nil {
-		movie.IndicativeRating = indicativeRating
-		updates["indicativeRatingId"] = *payload.IndicativeRatingID
+		movie.IndicativeRating = *indicativeRating
 	}
 
 	if payload.Title != nil {
 		movie.Title = *payload.Title
-		updates["title"] = *payload.Title
 	}
 
 	if payload.Duration != nil {
 		movie.Duration = *payload.Duration
-		updates["duration"] = *payload.Duration
 	}
 
-	if err := m.movieRepository.Update(ctx, movieID, updates); err != nil {
-		return nil, fmt.Errorf("error to update movie. error: %w", err)
+	if err := m.movieRepository.Update(ctx, *movie); err != nil {
+		return nil, fmt.Errorf("error to update movie: %w", err)
 	}
 
 	return movie.ToMovieResponse(), nil
 }
 
-func (m *movieService) Delete(ctx context.Context, movieID uuid.UUID) error {
+func (m *movieService) Delete(ctx context.Context, ID uuid.UUID) error {
+	log := slog.With(
+		slog.String("service", "movie"),
+		slog.String("func", "delete"),
+	)
+
 	session, ok := ctx.Value(domain.SessionKey).(*domain.Session)
 	if !ok || session == nil {
 		return domain.ErrUserNotFoundInContext
 	}
 
-	movie, err := m.movieRepository.GetByID(ctx, session.UserID, false)
+	movie, err := m.movieRepository.GetByID(ctx, ID, true)
 	if err != nil {
-		return fmt.Errorf("error to get movies by user id error:%w", err)
+		return fmt.Errorf("error to get movies by id error:%w", err)
 	}
 
 	if movie == nil {
@@ -237,9 +201,48 @@ func (m *movieService) Delete(ctx context.Context, movieID uuid.UUID) error {
 		return domain.ErrMovieNotBelongUser
 	}
 
+	for _, image := range movie.Images {
+		task := domain.MovieImageDeleteTask{
+			CloudFlareID: image.CloudFlareID,
+		}
+
+		if err := m.movieRepository.AddDeleteTaskToQueue(ctx, task); err != nil {
+			log.Error(err.Error())
+		}
+	}
+
+	return nil
+}
+
+func (m *movieService) ProcessUploadQueue(ctx context.Context, task domain.MovieImageUploadTask) error {
+	filename := fmt.Sprintf("movie_%s_image_%d.jpg", task.MovieID.String(), time.Now().Unix())
+	response, err := m.cloudFlareService.UploadImage(task.Image, filename)
+	if err != nil {
+		return fmt.Errorf("error to upload image to Cloudflare %w", err)
+	}
+
+	movieImage := domain.MovieImage{
+		ID:           uuid.New(),
+		MovieID:      task.MovieID,
+		ImageURL:     response.URL,
+		CloudFlareID: response.ID,
+	}
+
+	if err := m.movieRepository.CreateMovieImage(ctx, movieImage); err != nil {
+		return fmt.Errorf("error to save movie image to the database error:%w", err)
+	}
+
 	return nil
 }
 
 func (m *movieService) ProcessDeleteQueue(ctx context.Context, task domain.MovieImageDeleteTask) error {
-	panic("unimplemented")
+	if err := m.cloudFlareService.DeleteImage(task.CloudFlareID); err != nil {
+		return fmt.Errorf("error to delete image to Cloudflare %w", err)
+	}
+
+	if err := m.movieRepository.DeleteMovieImage(ctx, task.CloudFlareID); err != nil {
+		return fmt.Errorf("error to delete movie image to the database error:%w", err)
+	}
+
+	return nil
 }

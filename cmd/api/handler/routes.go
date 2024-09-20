@@ -50,5 +50,6 @@ func setupMovieRoutes(e *echo.Echo, i *do.Injector) {
 	adminGroup.POST("", movieHandler.Create, middleware.EnsureAuthenticated(i))
 	adminGroup.GET("", movieHandler.GetAllByUserID, middleware.EnsureAuthenticated(i))
 	adminGroup.PUT("/:id", movieHandler.Update, middleware.EnsureAuthenticated(i))
+	adminGroup.PUT("/:id", movieHandler.Update, middleware.EnsureAuthenticated(i))
 
 }

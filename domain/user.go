@@ -12,6 +12,22 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+type RoleType string
+
+const (
+	AdminRoleLevel1 RoleType = "admin_level_1"
+	AdminRoleLevel2 RoleType = "admin_level_2"
+	AdminRoleLevel3 RoleType = "admin_level_3"
+	UserRole        RoleType = "user"
+)
+
+var RoleLevels = map[RoleType]int{
+	UserRole:        0,
+	AdminRoleLevel1: 1,
+	AdminRoleLevel2: 2,
+	AdminRoleLevel3: 3,
+}
+
 var (
 	ErrUserNotFound          = errors.New("user not found")
 	ErrEmailAlreadyRegister  = errors.New("email already exists")
@@ -25,14 +41,26 @@ type User struct {
 	FirstName    string    `gorm:"column:firstName;type:varchar(255);not null"`
 	LastName     string    `gorm:"column:lastName;type:varchar(255);not null"`
 	Email        string    `gorm:"column:email;type:varchar(255);uniqueIndex;not null"`
-	BirthDate    time.Time `gorm:"column:birthDate;type:date;not null"`
 	PasswordHash string    `gorm:"column:passwordHash;type:varchar(255);not null"`
+	RoleID       uuid.UUID `gorm:"column:RoleId;type:char(36);not null;index"`
+	Role         Role      `gorm:"foreignKey:RoleID"`
+	BirthDate    time.Time `gorm:"column:birthDate;type:date;not null"`
 	CreatedAt    time.Time `gorm:"column:createdAt;not null"`
 	UpdatedAt    time.Time `gorm:"column:updatedAt;default:NULL"`
 }
 
 func (User) TableName() string {
 	return "User"
+}
+
+type Role struct {
+	ID          uuid.UUID `gorm:"column:id;type:char(36);primaryKey"`
+	Name        string    `gorm:"column:name;type:varchar(50);not null;uniqueIndex"`
+	Description string    `gorm:"column:description;type:varchar(255);not null"`
+}
+
+func (Role) TableName() string {
+	return "Role"
 }
 
 type UserPayload struct {
@@ -64,6 +92,7 @@ type SignInResponse struct {
 
 type UserHandler interface {
 	Create(ctx echo.Context) error
+	CreateAdmin(ctx echo.Context) error
 	SignIn(ctx echo.Context) error
 }
 

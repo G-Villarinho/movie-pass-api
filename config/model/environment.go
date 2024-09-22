@@ -12,6 +12,8 @@ type Environment struct {
 	CloudFlareApiKey     string `env:"CLOUD_FLARE_API_KEY"`
 	RedisDB              int    `env:"REDIS_DB"`
 	SessionExp           int    `env:"SESSION_EXP"`
+	SuperAdminEmail      string `env:"SUPER_ADMIN_EMAIL"`
+	SuperAdminPassword   string `env:"SUPER_ADMIN_PASSWORD"`
 	PrivateKey           *ecdsa.PrivateKey
 	PublicKey            *ecdsa.PublicKey
 }

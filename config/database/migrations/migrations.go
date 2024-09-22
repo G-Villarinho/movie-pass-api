@@ -8,6 +8,7 @@ import (
 	"github.com/GSVillas/movie-pass-api/config"
 	"github.com/GSVillas/movie-pass-api/config/database"
 	"github.com/GSVillas/movie-pass-api/domain"
+	"github.com/GSVillas/movie-pass-api/secure"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -32,11 +33,14 @@ func main() {
 		&domain.MovieImage{},
 		&domain.SeatReservation{},
 		&domain.Seat{},
+		&domain.Role{},
 	); err != nil {
 		log.Fatal("Fail to migrate: ", err)
 	}
 
 	populateIndicativeRatings(db)
+	pupulateRoles(db)
+	populateSuperAdmin(db)
 
 	log.Println("Migration executed successfully")
 }
@@ -96,5 +100,60 @@ func populateIndicativeRatings(db *gorm.DB) {
 		} else {
 			log.Printf("Rating %s already exists, skipping", rating.Description)
 		}
+	}
+}
+
+func pupulateRoles(db *gorm.DB) {
+	var roles = []domain.Role{
+		{ID: uuid.MustParse("aab5c388-1559-4a09-9c64-88aaa94fe9c3"), Name: string(domain.AdminRoleLevel1), Description: "Administrator role with basic privileges"},
+		{ID: uuid.MustParse("62f31a37-f586-4d51-a593-ee292b1e5090"), Name: string(domain.AdminRoleLevel2), Description: "Administrator role with advanced privileges"},
+		{ID: uuid.MustParse("1f7d5ea5-3994-4823-bbe5-a5aad8c7322c"), Name: string(domain.AdminRoleLevel3), Description: "Super administrator role"},
+		{ID: uuid.MustParse("7efe4510-169f-4511-8e12-de7ebaea31e5"), Name: string(domain.UserRole), Description: "Authenticated user role"},
+	}
+
+	for _, role := range roles {
+		if err := db.Where("name = ?", role.Name).FirstOrCreate(&role).Error; err != nil {
+			log.Printf("Error inserting role %s: %v", role.Name, err)
+		} else {
+			log.Printf("Inserted role %s", role.Name)
+		}
+	}
+}
+
+func populateSuperAdmin(db *gorm.DB) {
+	var superAdminRole domain.Role
+	if err := db.Where("name = ?", string(domain.AdminRoleLevel3)).First(&superAdminRole).Error; err != nil {
+		log.Printf("Super admin role not found: %v", err)
+		return
+	}
+
+	superAdmin := domain.User{
+		ID:           uuid.New(),
+		FirstName:    "Alexandre",
+		LastName:     "Falcão",
+		Email:        config.Env.SuperAdminEmail,
+		PasswordHash: config.Env.SuperAdminPassword,
+		RoleID:       superAdminRole.ID,
+		BirthDate:    time.Now().UTC(),
+		CreatedAt:    time.Now().UTC(),
+	}
+
+	var existingUser domain.User
+	if err := db.Where("email = ?", superAdmin.Email).First(&existingUser).Error; err == nil {
+		log.Printf("Super admin user already exists, skipping")
+		return
+	}
+
+	passwordHash, err := secure.HashPassword(config.Env.SuperAdminPassword)
+	if err != nil {
+		panic(err)
+	}
+
+	superAdmin.PasswordHash = string(passwordHash)
+
+	if err := db.Create(&superAdmin).Error; err != nil {
+		log.Printf("Error creating super admin: %v", err)
+	} else {
+		log.Println("Super admin created successfully")
 	}
 }

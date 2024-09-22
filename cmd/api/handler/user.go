@@ -84,3 +84,7 @@ func (u *userHandler) SignIn(ctx echo.Context) error {
 
 	return ctx.JSON(http.StatusOK, response)
 }
+
+func (u *userHandler) CreateAdmin(ctx echo.Context) error {
+	panic("unimplemented")
+}

@@ -44,7 +44,7 @@ func (u *userRepository) Create(ctx context.Context, user domain.User) error {
 
 func (u *userRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
 	var user *domain.User
-	if err := u.db.WithContext(ctx).Where("email = ?", email).First(&user).Error; err != nil {
+	if err := u.db.WithContext(ctx).Preload("Role").Where("email = ?", email).First(&user).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
 		}

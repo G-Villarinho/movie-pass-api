@@ -42,6 +42,8 @@ func EnsureAuthenticated(i *do.Injector) echo.MiddlewareFunc {
 			newCtx := context.WithValue(ctx.Request().Context(), domain.SessionKey, session)
 			ctx.SetRequest(ctx.Request().WithContext(newCtx))
 
+			ctx.Set(string(domain.SessionKey), session)
+
 			return next(ctx)
 		}
 	}

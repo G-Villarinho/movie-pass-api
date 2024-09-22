@@ -23,8 +23,9 @@ type Session struct {
 	Token     string    `json:"token"`
 	FirstName string    `json:"firstName"`
 	LastName  string    `json:"lastName"`
-	UserID    uuid.UUID `json:"MoviePassId"`
 	Email     string    `json:"email"`
+	Role      RoleType  `json:"role"`
+	UserID    uuid.UUID `json:"MoviePassId"`
 }
 
 type SessionService interface {

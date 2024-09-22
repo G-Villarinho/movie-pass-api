@@ -19,7 +19,7 @@ type sessionService struct {
 func NewSessionService(i *do.Injector) (domain.SessionService, error) {
 	sessionRepository, err := do.Invoke[domain.SessionRepository](i)
 	if err != nil {
-		return nil, fmt.Errorf("failed to initialize SessionRepository: %w", err)
+		return nil, fmt.Errorf("error to initialize SessionRepository: %w", err)
 	}
 
 	return &sessionService{
@@ -31,7 +31,7 @@ func NewSessionService(i *do.Injector) (domain.SessionService, error) {
 func (s *sessionService) Create(ctx context.Context, user domain.User) (string, error) {
 	token, err := s.createToken(user)
 	if err != nil {
-		return "", fmt.Errorf("failed to create token for user ID %s: %w", user.ID, err)
+		return "", fmt.Errorf("error to create token for user ID %s: %w", user.ID, err)
 	}
 
 	session := &domain.Session{
@@ -43,7 +43,7 @@ func (s *sessionService) Create(ctx context.Context, user domain.User) (string, 
 	}
 
 	if err := s.sessionRepository.Create(ctx, *session); err != nil {
-		return "", fmt.Errorf("failed to create session for user ID %s: %w", user.ID, err)
+		return "", fmt.Errorf("error to create session for user ID %s: %w", user.ID, err)
 	}
 
 	return token, nil
@@ -52,12 +52,12 @@ func (s *sessionService) Create(ctx context.Context, user domain.User) (string, 
 func (s *sessionService) GetSession(ctx context.Context, token string) (*domain.Session, error) {
 	sessionToken, err := s.extractSessionFromToken(token)
 	if err != nil {
-		return nil, fmt.Errorf("failed to extract session from token: %w", err)
+		return nil, fmt.Errorf("error to extract session from token: %w", err)
 	}
 
 	session, err := s.sessionRepository.GetSession(ctx, sessionToken.UserID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get session for user ID %s: %w", sessionToken.UserID, err)
+		return nil, fmt.Errorf("error to get session for user ID %s: %w", sessionToken.UserID, err)
 	}
 
 	if session == nil {
@@ -77,11 +77,12 @@ func (s *sessionService) createToken(user domain.User) (string, error) {
 		"firstName":   user.FirstName,
 		"lastName":    user.LastName,
 		"email":       user.Email,
+		"role":        user.Role.Name,
 	})
 
 	tokenString, err := token.SignedString(config.Env.PrivateKey)
 	if err != nil {
-		return "", fmt.Errorf("failed to sign token for user ID %s: %w", user.ID, err)
+		return "", fmt.Errorf("error to sign token for user ID %s: %w", user.ID, err)
 	}
 
 	return tokenString, nil
@@ -96,7 +97,7 @@ func (s *sessionService) extractSessionFromToken(tokenString string) (*domain.Se
 	})
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse token: %w", err)
+		return nil, fmt.Errorf("error to parse token: %w", err)
 	}
 
 	if !token.Valid {
@@ -110,12 +111,12 @@ func (s *sessionService) extractSessionFromToken(tokenString string) (*domain.Se
 
 	sessionJSON, err := jsoniter.Marshal(claims)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal claims into JSON: %w", err)
+		return nil, fmt.Errorf("error to marshal claims into JSON: %w", err)
 	}
 
 	var session domain.Session
 	if err := jsoniter.Unmarshal(sessionJSON, &session); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal session from JSON: %w", err)
+		return nil, fmt.Errorf("error to unmarshal session from JSON: %w", err)
 	}
 
 	return &session, nil
